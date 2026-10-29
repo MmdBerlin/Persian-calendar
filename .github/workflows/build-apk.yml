@@ -1,1 +1,109 @@
 
+name: Build Persian Calendar APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "project.zip"
+      - ".github/workflows/build-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          test -f project.zip
+          mkdir extracted
+          unzip -q project.zip -d extracted
+          SOURCE_DIR="$(find extracted -type f -name package.json -print -quit | xargs dirname)"
+          test -n "$SOURCE_DIR"
+          echo "SOURCE_DIR=$SOURCE_DIR" >> "$GITHUB_ENV"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Configure offline app
+        working-directory: extracted
+        run: |
+          cd "$GITHUB_WORKSPACE/$SOURCE_DIR"
+
+          node -e '
+          const fs = require("fs");
+          const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          p.scripts = p.scripts || {};
+          p.scripts.build = "next build";
+          p.dependencies = p.dependencies || {};
+          p.devDependencies = p.devDependencies || {};
+          p.dependencies["@capacitor/core"] = "^7.4.3";
+          p.dependencies["@capacitor/android"] = "^7.4.3";
+          p.devDependencies["@capacitor/cli"] = "^7.4.3";
+          fs.writeFileSync("package.json", JSON.stringify(p, null, 2));
+          '
+
+          cat > next.config.ts <<'EOF'
+          import type { NextConfig } from "next";
+          const nextConfig: NextConfig = {
+            output: "export",
+            trailingSlash: true,
+            images: { unoptimized: true },
+          };
+          export default nextConfig;
+          EOF
+
+          cat > capacitor.config.ts <<'EOF'
+          import type { CapacitorConfig } from "@capacitor/cli";
+          const config: CapacitorConfig = {
+            appId: "ir.persiancalendar.offline",
+            appName: "تقویم شمسی",
+            webDir: "out",
+          };
+          export default config;
+          EOF
+
+      - name: Install dependencies
+        working-directory: extracted
+        run: cd "$GITHUB_WORKSPACE/$SOURCE_DIR" && npm install
+
+      - name: Build web app
+        working-directory: extracted
+        run: cd "$GITHUB_WORKSPACE/$SOURCE_DIR" && npm run build
+
+      - name: Add Android
+        working-directory: extracted
+        run: cd "$GITHUB_WORKSPACE/$SOURCE_DIR" && npx cap add android
+
+      - name: Sync Android
+        working-directory: extracted
+        run: cd "$GITHUB_WORKSPACE/$SOURCE_DIR" && npx cap sync android
+
+      - name: Build APK
+        working-directory: extracted
+        run: |
+          cd "$GITHUB_WORKSPACE/$SOURCE_DIR/android"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: persian-calendar-apk
+          path: extracted/**/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          
