@@ -201,7 +201,25 @@
   display: none;
 }
 
-/* Apply the safe area globally to the body as well */
+/* Lock the document itself: only <main> scrolls.
+   Before, body had padding-top (on top of the header's own safe-top padding) and the app root was
+   100dvh tall, so the page was a few pixels taller than the screen. The whole document could then
+   be dragged: the header slid away and the bottom bar was half hidden. Now html/body can never scroll
+   or rubber-band; the safe-area space is applied once, by the header. */
+html,
 body {
-  padding-top: var(--safe-top);
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+}
+
+/* The scrolling area must not pass its scroll (or the Android stretch effect) on to the page */
+.app-scroll {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
