@@ -241,7 +241,7 @@ export default function Home() {
       : 'off';
 
   return (
-    <div className="h-dvh flex flex-col bg-gradient-to-b from-background to-muted/30 overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-gradient-to-b from-background to-muted/30 overflow-hidden">
       {/* Header — fixed, never scrolls away */}
       <header className="shrink-0 z-50 glass safe-top border-b border-border/40">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-3">
@@ -297,8 +297,9 @@ export default function Home() {
       </header>
 
       {/* Scrollable content between the fixed header and the bottom navigation */}
-      <main className="flex-1 overflow-y-auto no-scrollbar">
-        <div className="max-w-lg mx-auto w-full px-4 py-5 pb-6">
+      <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar app-scroll">
+        {/* pb-32: room for the floating navigation so the last item is never hidden behind it */}
+        <div className="max-w-lg mx-auto w-full px-4 pt-5 pb-32">
           <div className="relative min-h-[50vh]">
             {(
               [
@@ -371,46 +372,47 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Bottom navigation — fixed, 4 tabs */}
-      <nav className="shrink-0 z-50 glass border-t border-border/40 safe-bottom">
-        <div className="max-w-lg mx-auto px-2 pt-1.5 pb-1.5 grid grid-cols-4">
+      {/* Floating bottom navigation: a pill that hovers above the content, not attached to the screen edge */}
+      <nav
+        aria-label="ناوبری اصلی"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-50 px-4"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)' }}
+      >
+        <div className="pointer-events-auto mx-auto flex max-w-sm items-center justify-between rounded-full bg-black p-2 shadow-[0_12px_32px_rgba(0,0,0,0.28)]">
           {tabs.map((t) => {
             const active = tab === t.id;
             return (
               <button
                 key={t.id}
                 onClick={() => switchTab(t.id)}
-                className="relative flex flex-col items-center gap-0.5 py-1 rounded-2xl transition-transform active:scale-95"
+                aria-label={t.label}
                 aria-current={active ? 'page' : undefined}
+                className={`relative flex h-11 items-center justify-center rounded-full transition-colors duration-200 active:scale-95 ${
+                  active ? 'gap-2 px-4 text-white' : 'w-11 text-white/75'
+                }`}
               >
-                <span
-                  className={`relative flex h-9 w-16 items-center justify-center rounded-full transition-colors duration-200 ${
-                    active ? 'bg-primary/10' : ''
-                  }`}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="bottom-nav-pill"
-                      className="absolute inset-0 rounded-full bg-primary/10"
-                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 38 }}
-                    />
-                  )}
-                  <span className={`relative z-10 ${active ? 'text-primary' : 'text-muted-foreground'}`}>{t.icon}</span>
-                </span>
-                <span
-                  className={`text-[10px] transition-colors duration-200 ${
-                    active ? 'text-primary font-bold' : 'text-muted-foreground font-medium'
-                  }`}
-                >
-                  {t.label}
-                </span>
                 {active && (
                   <motion.span
-                    layoutId="bottom-nav-indicator"
-                    className="absolute -top-1.5 h-1 w-8 rounded-full bg-primary"
+                    layoutId="bottom-nav-pill"
+                    className="absolute inset-0 rounded-full bg-white/15"
                     transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 38 }}
                   />
                 )}
+                <span className="relative z-10 flex items-center justify-center">{t.icon}</span>
+                <AnimatePresence initial={false}>
+                  {active && (
+                    <motion.span
+                      key="label"
+                      initial={reduceMotion ? false : { width: 0, opacity: 0 }}
+                      animate={{ width: 'auto', opacity: 1 }}
+                      exit={reduceMotion ? { opacity: 0 } : { width: 0, opacity: 0 }}
+                      transition={{ duration: reduceMotion ? 0 : 0.22, ease: ENTER_EASE }}
+                      className="relative z-10 overflow-hidden whitespace-nowrap text-[13px] font-semibold"
+                    >
+                      {t.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </button>
             );
           })}
