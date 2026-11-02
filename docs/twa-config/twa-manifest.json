@@ -1,0 +1,32 @@
+{
+  "packageId": "com.persiancalendar.app",
+  "host": "localhost",
+  "name": "تقویم شمسی میلادی",
+  "launcherName": "تقویم",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#5856D6",
+  "themeColorDark": "#5856D6",
+  "navigationColor": "#5856D6",
+  "navigationColorDark": "#5856D6",
+  "navigationDividerColor": "#5856D6",
+  "navigationDividerColorDark": "#5856D6",
+  "backgroundColor": "#FFFFFF",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://localhost/icons/icon-512.png",
+  "maskableIconUrl": "https://localhost/icons/icon-512-maskable.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    { "name": "تقویم", "shortName": "تقویم", "url": "/?tab=calendar", "iconUrl": "https://localhost/icons/icon-96.png" },
+    { "name": "یادآورها", "shortName": "یادآور", "url": "/?tab=reminders", "iconUrl": "https://localhost/icons/icon-96.png" },
+    { "name": "یادداشت ها", "shortName": "یادداشت", "url": "/?tab=notes", "iconUrl": "https://localhost/icons/icon-96.png" }
+  ],
+  "generatorSignatures": ["bubblewrap-cli"]
+}

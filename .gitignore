@@ -1,0 +1,31 @@
+# dependencies / build output
+node_modules/
+.next/
+out/
+dev.log
+server.log
+*.tsbuildinfo
+
+# generated in CI (npx cap add android) — never commit
+android/
+ios/
+
+# secrets — NEVER commit these
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.base64.txt
+keystore-secrets.txt
+my-release.keystore*
+
+# local database
+db/*.db
+db/*.db-journal
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

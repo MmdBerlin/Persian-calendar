@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App logo used on the launch screen (rounded square with a calendar glyph). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#5856D6"
+        android:pathData="M35,21 H73 A14,14 0 0 1 87,35 V73 A14,14 0 0 1 73,87 H35 A14,14 0 0 1 21,73 V35 A14,14 0 0 1 35,21 Z" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M38,42 H70 A4,4 0 0 1 74,46 V70 A4,4 0 0 1 70,74 H38 A4,4 0 0 1 34,70 V46 A4,4 0 0 1 38,42 Z" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M34,53 H74 M44,36 V46 M64,36 V46" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,59.5 A3.5,3.5 0 1 1 54,66.5 A3.5,3.5 0 1 1 54,59.5 Z" />
+</vector>

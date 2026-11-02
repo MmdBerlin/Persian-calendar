@@ -1,0 +1,413 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Bell,
+  CheckCircle2,
+  CheckSquare,
+} from 'lucide-react';
+import {
+  JALALI_MONTHS,
+  GREGORIAN_MONTHS,
+  toPersianDigits,
+  todayJalali,
+  daysBetweenJalali,
+  jalaliToGregorian,
+  gregorianToJalali,
+  isJalaliLeap,
+  type JalaliDate,
+} from '@/lib/jalali';
+import {
+  useReminders,
+  type Reminder,
+  type ReminderType,
+} from '@/hooks/use-reminders';
+import {
+  REMINDER_TYPE_LABELS,
+  REMINDER_TYPE_COLORS,
+} from '@/lib/reminder-types';
+import { formatNotifyTime } from '@/lib/notification-text';
+import { nextOccurrence, describeRepeat, isoOf, isCompleted, offsetsOf, offsetLabel, formatOccurrence, startOfDay } from '@/lib/reminder-schedule';
+import { ReminderDialog } from '@/components/calendar/reminder-dialog';
+import { ReminderTypeIcon } from '@/components/calendar/reminder-type-icon';
+
+interface RemindersManagerProps {
+  remindersHook: ReturnType<typeof useReminders>;
+}
+
+export function RemindersManager({ remindersHook }: RemindersManagerProps) {
+  const { reminders, addReminder, updateReminder, deleteReminder, deleteMultiple, clearAll, completeOccurrence } = remindersHook;
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
+
+  const sortedReminders = useMemo(() => {
+    const today = startOfDay(new Date());
+    const daysOf = (r: Reminder) => nextOccurrence(r, today)?.days ?? Number.MAX_SAFE_INTEGER; // finished ones last
+    return [...reminders].sort((a, b) => daysOf(a) - daysOf(b));
+  }, [reminders]);
+
+  const openNewDialog = () => {
+    setEditingId(null);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (id: string) => {
+    if (selectionMode) {
+      toggleSelect(id);
+      return;
+    }
+    setEditingId(id);
+    setDialogOpen(true);
+  };
+
+  const handleClose = () => {
+    setDialogOpen(false);
+    setTimeout(() => setEditingId(null), 200);
+  };
+
+  const handleSave = (data: Omit<Reminder, 'id' | 'createdAt'>) => {
+    if (editingId) {
+      updateReminder(editingId, data);
+    } else {
+      addReminder(data);
+    }
+    handleClose();
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    deleteMultiple([...selectedIds]);
+    exitSelectionMode();
+  };
+
+  const handleClearAll = () => {
+    clearAll();
+    setConfirmClearAll(false);
+    exitSelectionMode();
+  };
+
+  const editingReminder = editingId ? reminders.find((r) => r.id === editingId) : null;
+
+  return (
+    <Card className="glass-card p-5 border-0 rounded-3xl">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Bell className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold">یادآورها</h3>
+            <p className="text-xs text-muted-foreground">
+              {selectionMode
+                ? `${toPersianDigits(selectedIds.size)} تا انتخاب شده`
+                : 'تولدها، جلسه‌ها و کارهایی که نباید فراموش کنی'}
+            </p>
+          </div>
+        </div>
+        {selectionMode ? (
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={exitSelectionMode}
+              className="rounded-xl text-xs h-9"
+            >
+              لغو
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={selectedIds.size === 0}
+              className="rounded-xl text-xs h-9 gap-1.5"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              حذف ({toPersianDigits(selectedIds.size)})
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            {reminders.length > 0 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectionMode(true)}
+                  className="rounded-xl text-xs h-9"
+                  aria-label="حذف چندتایی"
+                >
+                  <CheckSquare className="h-3.5 w-3.5 ml-1" />
+                  انتخاب
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmClearAll(true)}
+                  className="rounded-xl text-xs h-9 text-destructive hover:text-destructive"
+                  aria-label="حذف همه"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            )}
+            <Button
+              onClick={openNewDialog}
+              className="rounded-2xl h-9 w-9 p-0"
+              aria-label="افزودن یادآور"
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {selectionMode && (
+        <div className="mb-3 p-2 rounded-xl bg-primary/5 text-xs text-muted-foreground text-center">
+          برای انتخاب، روی یادآورها ضربه بزن
+        </div>
+      )}
+
+      {sortedReminders.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="h-16 w-16 rounded-3xl bg-muted mx-auto flex items-center justify-center mb-4">
+            <Bell className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            هنوز یادآوری نساختی
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            روی + بزن تا اولین یادآورت رو اضافه کنی
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2.5 max-h-[520px] overflow-y-auto no-scrollbar pr-0.5">
+          {sortedReminders.map((r) => (
+            <ReminderItem
+              key={r.id}
+              reminder={r}
+              onEdit={() => openEditDialog(r.id)}
+              onDelete={() => {
+                if (typeof window !== 'undefined' && window.confirm(`«${r.title}» حذف شود؟`)) {
+                  deleteReminder(r.id);
+                }
+              }}
+              selectionMode={selectionMode}
+              isSelected={selectedIds.has(r.id)}
+              onDone={(iso) => completeOccurrence(r.id, iso)}
+            />
+          ))}
+        </div>
+      )}
+
+      <ReminderDialog
+        key={editingId || 'new'}
+        open={dialogOpen}
+        onOpenChange={(v) => { if (!v) handleClose(); }}
+        editingReminder={editingReminder}
+        onSave={handleSave}
+      />
+
+      {/* Clear all confirmation */}
+      <Dialog open={confirmClearAll} onOpenChange={setConfirmClearAll}>
+        <DialogContent className="sm:max-w-sm rounded-3xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">حذف همه یادآورها؟</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            آیا از حذف همه {toPersianDigits(reminders.length)} یادآور مطمئن هستید؟ این عمل قابل بازگشت نیست.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setConfirmClearAll(false)} className="rounded-2xl">
+              انصراف
+            </Button>
+            <Button variant="destructive" onClick={handleClearAll} className="rounded-2xl">
+              بله، حذف کن
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+function ReminderItem({
+  reminder,
+  onEdit,
+  onDelete,
+  selectionMode,
+  isSelected,
+  onDone,
+}: {
+  reminder: Reminder;
+  onEdit: () => void;
+  onDelete: () => void;
+  selectionMode: boolean;
+  isSelected: boolean;
+  /** "انجام شد": a one-time reminder is removed, a repeating one skips this occurrence */
+  onDone: (isoDay: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const today = todayJalali();
+  const next = nextOccurrence(reminder, startOfDay(new Date()));
+  const days = next ? next.days : Number.MAX_SAFE_INTEGER;
+  const finished = !next; // one-time reminder that is done (or already past)
+  const isToday = days === 0;
+  const isSoon = days > 0 && days <= 7;
+  const repeatText = describeRepeat(reminder);
+  const offsets = offsetsOf(reminder);
+
+  let ageInfo: string | null = null;
+  if (reminder.type === 'birthday' && reminder.year) {
+    const birthJ = reminder.calendar === 'jalali'
+      ? { jy: reminder.year, jm: reminder.month, jd: reminder.day }
+      : gregorianToJalali(reminder.year, reminder.month, reminder.day);
+    const ageYears = today.jy - birthJ.jy;
+    if (ageYears >= 0) {
+      ageInfo = ` (${toPersianDigits(ageYears + 1)} سالگی)`;
+    }
+  }
+
+  const timeLabel = formatNotifyTime(reminder);
+
+  const handleCardClick = () => {
+    if (selectionMode) {
+      onEdit();
+      return;
+    }
+    setExpanded((v) => !v);
+  };
+
+  return (
+    <div
+      className={`relative rounded-2xl border transition-all ${
+        isToday && !isSelected
+          ? 'bg-rose-50 border-rose-200'
+          : isSoon && !isSelected
+          ? 'bg-amber-50/50 border-amber-200'
+          : isSelected
+          ? 'bg-primary/5 border-primary ring-2 ring-primary'
+          : 'bg-background/60 border-border'
+      } ${expanded ? 'shadow-md' : 'hover:shadow-sm'}`}
+    >
+      <button
+        type="button"
+        className="w-full flex items-center gap-3 p-3 text-right"
+        onClick={handleCardClick}
+        aria-expanded={expanded}
+      >
+        <ReminderTypeIcon type={reminder.type} boxed />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm truncate">{reminder.title}</span>
+            <Badge variant="outline" className={`text-[10px] px-2 py-0 ${REMINDER_TYPE_COLORS[reminder.type]}`}>
+              {REMINDER_TYPE_LABELS[reminder.type]}
+            </Badge>
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {next
+              ? formatOccurrence(next.date, reminder.calendar, repeatText !== 'هر سال')
+              : `${toPersianDigits(reminder.day)} ${reminder.calendar === 'jalali' ? JALALI_MONTHS[reminder.month - 1] : GREGORIAN_MONTHS[reminder.month - 1]}`}
+            {reminder.calendar === 'gregorian' && ' (میلادی)'}
+            {repeatText && ` • ${repeatText}`}
+            {ageInfo}
+            {' • '}
+            ساعت {toPersianDigits(timeLabel)}
+          </div>
+          {finished && (
+            <div className="text-xs text-emerald-600 font-medium mt-0.5">انجام شده یا گذشته</div>
+          )}
+          {isToday && (
+            <div className="text-xs text-rose-600 font-medium mt-0.5">امروز!</div>
+          )}
+          {!isToday && isSoon && (
+            <div className="text-xs text-amber-600 font-medium mt-0.5">{toPersianDigits(days)} روز دیگه</div>
+          )}
+        </div>
+      </button>
+
+      {expanded && !selectionMode && (
+        <div className="px-3 pb-3 pt-0 space-y-2 border-t border-border/50 mt-0 animate-in fade-in duration-200">
+          {reminder.description && (
+            <p className="text-xs text-muted-foreground pt-2">{reminder.description}</p>
+          )}
+          <p className="text-[11px] text-muted-foreground pt-2">
+            یادآوری: {offsets.map((n) => offsetLabel(n)).join('، ')}
+          </p>
+          <div className="flex flex-wrap gap-2 pt-2">
+            {next && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl gap-1.5 flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDone(isoOf(next.date));
+                }}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                انجام شد
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-1.5 flex-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              ویرایش
+            </Button>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full rounded-xl text-destructive hover:text-destructive hover:bg-rose-50 gap-1.5"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            حذف یادآور
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
