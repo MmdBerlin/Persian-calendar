@@ -105,13 +105,15 @@ if (existsSync(gradlePath)) {
 
   if (!g.includes('GITHUB_RUN_NUMBER')) {
     // VERSION_CODE (set by the workflow) wins; otherwise the workflow run number
+    // نکته مهم: در Groovy نوشتن `versionCode (expr).toInteger()` یعنی (versionCode(expr)).toInteger()
+    // و چون versionCode مقدار برنمی‌گرداند، خطای "Value is null" می‌دهد. پس صراحتاً پرانتز می‌گذاریم.
     g = g.replace(
-      /versionCode\s+\d+/,
-      'versionCode (System.getenv("VERSION_CODE") ?: System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()'
+      /versionCode\s*=?\s*\d+/,
+      'versionCode(Integer.parseInt(System.getenv("VERSION_CODE") ?: System.getenv("GITHUB_RUN_NUMBER") ?: "1"))'
     );
     g = g.replace(
-      /versionName\s+"[^"]*"/,
-      'versionName "1.0." + (System.getenv("VERSION_CODE") ?: System.getenv("GITHUB_RUN_NUMBER") ?: "0")'
+      /versionName\s*=?\s*"[^"]*"/,
+      'versionName("1.0." + (System.getenv("VERSION_CODE") ?: System.getenv("GITHUB_RUN_NUMBER") ?: "0"))'
     );
   }
   if (!g.includes('signingConfigs')) {
