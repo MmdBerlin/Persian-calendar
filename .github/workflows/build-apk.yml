@@ -1,52 +1,41 @@
-name: Build Android APK + Play bundle
+name: Build Android APK
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ساخت APK امضاشده از سورس (همان کلید هر بار → آپدیت روی نسخه قبلی نصب می‌شود)
+# ساخت APK امضاشده از سورس (همان کلید هر بار، پس آپدیت روی نسخه قبلی نصب می شود)
 #
 # لازم است ۴ راز (Secret) در تنظیمات مخزن ست شده باشد:
 #   Settings → Secrets and variables → Actions → New repository secret
 #
 #   KEYSTORE_BASE64    ← خروجی دستور:  base64 -w0 my-release.keystore
-#   KEYSTORE_PASSWORD  ← رمز keystore (مطابق فایل keystore-secrets.txt)
+#   KEYSTORE_PASSWORD  ← رمز keystore
 #   KEY_ALIAS          ← calendar
-#   KEY_PASSWORD       ← رمز کلید (مطابق فایل keystore-secrets.txt)
+#   KEY_PASSWORD       ← رمز کلید
 #
-# (مقادیر بالا مطابق فایل keystore-secrets.txt است؛ اگر کلید خودتان را ساختید
-#  مقدارهای خودتان را بگذارید. فایل my-release.keystore را هرگز کامیت نکنید!)
+# فایل my-release.keystore را هرگز کامیت نکنید!
 #
 # خروجی هر بیلد:
-#   app-release.apk  → نصب مستقیم روی گوشی
-#   app-release.aab  → فایلی که گوگل‌پلی می‌خواهد
-#
-# اگر راز PLAY_SERVICE_ACCOUNT_JSON هم ست شده باشد، فایل .aab به‌صورت پیش‌نویس
-# در مسیر internal گوگل‌پلی هم آپلود می‌شود.
+#   app-release.apk  → نصب مستقیم روی گوشی (از بخش Artifacts همین اجرا دانلود کنید)
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      play_track:
-        description: 'Google Play track (only used when PLAY_SERVICE_ACCOUNT_JSON is set)'
-        default: internal
-        type: choice
-        options: [internal, alpha, beta, production]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # با هر اجرا یکی زیاد می‌شود (۱، ۲، ۳ ...) — اندروید فقط شماره بالاتر را آپدیت می‌پذیرد
+      # با هر اجرا یکی زیاد می شود؛ اندروید فقط شماره بالاتر را به عنوان آپدیت می پذیرد
       VERSION_CODE: ${{ github.run_number }}
-      HAS_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
 
     steps:
       - uses: actions/checkout@v4
 
+      # Capacitor CLI نسخه جدید Node 22 یا بالاتر می خواهد
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - uses: actions/setup-java@v4
         with:
@@ -62,31 +51,30 @@ jobs:
       - name: Add Android project
         run: npx cap add android
 
-      # آیکون‌ها، اسپلش، مجوزهای نوتیفیکیشن/هشدار دقیق (SCHEDULE_EXACT_ALARM و
-      # USE_EXACT_ALARM) و تنظیمات امضا و نسخه را به پروژه اندروید اضافه می‌کند.
+      # آیکون ها، اسپلش، مجوزها، تنظیمات امضا و نسخه را به پروژه اندروید اضافه می کند
       - name: Patch Android project (icons, splash, permissions, signing, version)
         run: node scripts/patch-android.mjs
 
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # ─── کلید امضا: همیشه با همان کلید → نسخه جدید روی نسخه قبلی نصب می‌شود ───
+      # ─── کلید امضا: همیشه همان کلید، تا نسخه جدید روی نسخه قبلی نصب شود ───
       - name: Prepare signing key (my-release.keystore)
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::راز KEYSTORE_BASE64 ست نشده است. فایل my-release.keystore را با scripts/make-keystore.sh بسازید، با «base64 -w0 my-release.keystore» به رشته تبدیل کنید و آن را به‌همراه KEYSTORE_PASSWORD و KEY_ALIAS و KEY_PASSWORD در Secrets بگذارید (جزئیات: keystore-secrets.txt و BUILD-GUIDE.md)."
+            echo "::error::راز KEYSTORE_BASE64 ست نشده است. فایل keystore را به base64 تبدیل کنید و همراه KEYSTORE_PASSWORD و KEY_ALIAS و KEY_PASSWORD در Secrets بگذارید."
             exit 1
           fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/my-release.keystore"
           echo "KEYSTORE_FILE=$RUNNER_TEMP/my-release.keystore" >> "$GITHUB_ENV"
-          # بررسی سالم بودن کلید
           keytool -list -keystore "$RUNNER_TEMP/my-release.keystore" \
-            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" >/dev/null 2>&1 \
-            || { echo "::error::فایل keystore با رمز داده‌شده باز نشد؛ KEYSTORE_PASSWORD را چک کنید."; exit 1; }
+            -storepass "$KEYSTORE_PASSWORD" >/dev/null 2>&1 \
+            || { echo "::error::فایل keystore با رمز داده شده باز نشد؛ KEYSTORE_PASSWORD را چک کنید."; exit 1; }
 
-      - name: Build signed APK and AAB
+      - name: Build signed APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -94,7 +82,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease bundleRelease
+          ./gradlew assembleRelease
 
       - name: Check the APK is signed
         run: |
@@ -105,16 +93,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: persian-calendar-release
-          path: |
-            android/app/build/outputs/apk/release/app-release.apk
-            android/app/build/outputs/bundle/release/app-release.aab
-
-      - name: Upload to Google Play (optional)
-        if: env.HAS_PLAY == 'true'
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.persiancalendar.app
-          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
-          track: ${{ inputs.play_track || 'internal' }}
-          status: draft
+          path: android/app/build/outputs/apk/release/app-release.apk
