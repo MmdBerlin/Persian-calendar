@@ -171,7 +171,7 @@ export function DayDetails({ date, reminders, settings, onDone, onUndo }: DayDet
                   }`}
                 >
                   {done ? <RotateCcw className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                  {done ? 'برگردان' : 'انجام شد'}
+                  {done ? 'دستم خورد!' : 'انجام شد'}
                 </button>
               )}
             </div>

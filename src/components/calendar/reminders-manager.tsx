@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import {
   Bell,
   CheckCircle2,
   SquareCheck,
+  RotateCcw,
 } from 'lucide-react';
 import {
   JALALI_MONTHS,
@@ -52,11 +53,29 @@ interface RemindersManagerProps {
 }
 
 export function RemindersManager({ remindersHook }: RemindersManagerProps) {
-  const { reminders, addReminder, updateReminder, deleteReminder, deleteMultiple, completeOccurrence } = remindersHook;
+  const { reminders, addReminder, updateReminder, deleteReminder, deleteMultiple, completeOccurrence, setOccurrenceDone, lastCompletionUndo, undoLastCompletion } = remindersHook;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const backStateRef = useRef({ dialogOpen, selectionMode });
+  backStateRef.current = { dialogOpen, selectionMode };
+  useEffect(() => {
+    const onAppBack = (event: Event) => {
+      const custom = event as CustomEvent<{ handled: boolean }>;
+      if (custom.detail?.handled) return;
+      const current = backStateRef.current;
+      if (current.dialogOpen) {
+        custom.detail.handled = true;
+        handleClose();
+      } else if (current.selectionMode) {
+        custom.detail.handled = true;
+        exitSelectionMode();
+      }
+    };
+    window.addEventListener('app-back', onAppBack);
+    return () => window.removeEventListener('app-back', onAppBack);
+  }, []);
 
   const sortedReminders = useMemo(() => {
     const today = startOfDay(new Date());
@@ -149,6 +168,18 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
             </p>
           </div>
         </div>
+        {lastCompletionUndo && !selectionMode && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={undoLastCompletion}
+            className="rounded-xl h-9 gap-1.5 border-primary/20 text-primary hover:bg-primary/5"
+            aria-label="دستم خورد، برگردان"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            دستم خورد!
+          </Button>
+        )}
         {selectionMode ? (
           <div className="flex items-center gap-1.5">
             <Button
@@ -239,6 +270,7 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
                     selectionMode={selectionMode}
                     isSelected={selectedIds.has(r.id)}
                     onDone={(iso) => completeOccurrence(r.id, iso)}
+                    onUndo={(iso) => setOccurrenceDone(r.id, iso, false)}
                   />
                 ))}
               </div>
@@ -265,6 +297,7 @@ function ReminderItem({
   selectionMode,
   isSelected,
   onDone,
+  onUndo,
 }: {
   reminder: Reminder;
   onEdit: () => void;
@@ -273,6 +306,7 @@ function ReminderItem({
   isSelected: boolean;
   /** "انجام شد": a one-time reminder is removed, a repeating one skips this occurrence */
   onDone: (isoDay: string) => void;
+  onUndo: (isoDay: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmDone, setConfirmDone] = useState(false);
@@ -280,6 +314,7 @@ function ReminderItem({
   const next = nextOccurrence(reminder, startOfDay(new Date()));
   const days = next ? next.days : Number.MAX_SAFE_INTEGER;
   const finished = !next; // one-time reminder that is done (or already past)
+  const latestCompletedIso = [...(reminder.completed ?? [])].sort().at(-1) ?? null;
   const isToday = days === 0;
   const isSoon = days > 0 && days <= 7;
   const repeatText = describeRepeat(reminder);
@@ -307,10 +342,20 @@ function ReminderItem({
     }
     setExpanded((v) => !v);
   };
+  useEffect(() => {
+    const onAppBack = (event: Event) => {
+      const custom = event as CustomEvent<{ handled: boolean }>;
+      if (custom.detail?.handled || !expanded || selectionMode) return;
+      custom.detail.handled = true;
+      setExpanded(false);
+    };
+    window.addEventListener('app-back', onAppBack);
+    return () => window.removeEventListener('app-back', onAppBack);
+  }, [expanded, selectionMode]);
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border transition-all ${
+      className={`relative overflow-hidden rounded-2xl border transition-colors duration-200 ${
         isToday
           ? 'bg-rose-50 border-rose-200'
           : isSoon
@@ -372,6 +417,20 @@ function ReminderItem({
             </p>
           )}
           <div className="flex flex-wrap gap-2 pt-2">
+            {latestCompletedIso && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl gap-1.5 flex-1 border-primary/20 text-primary hover:bg-primary/5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUndo(latestCompletedIso);
+                }}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                دستم خورد!
+              </Button>
+            )}
             {next && isToday && (
               <Button
                 variant="outline"

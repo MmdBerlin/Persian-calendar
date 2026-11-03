@@ -223,3 +223,19 @@ body {
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Keep UI motion lightweight: animate composited properties rather than layout. */
+.smooth-transition {
+  transition-property: transform, opacity, color, background-color, border-color, box-shadow;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -46,6 +46,10 @@ export interface Reminder {
 }
 
 const STORAGE_KEY = 'persian-calendar-reminders-v1';
+const LAST_COMPLETION_UNDO_KEY = 'persian-calendar-last-completion-undo-v1';
+type LastCompletionUndo = { kind: 'deleted'; reminder: Reminder; title: string } | { kind: 'occurrence'; reminderId: string; isoDay: string; title: string };
+let cachedUndoRaw: string | null = null;
+let cachedUndo: LastCompletionUndo | null = null;
 
 /** Old versions stored SMS fields on reminders; drop them when loading. */
 function stripLegacyFields(list: Reminder[]): Reminder[] {
@@ -108,6 +112,20 @@ function getRemindersClient(): Reminder[] {
   }
   return cachedReminders;
 }
+function getLastCompletionUndoClient(): LastCompletionUndo | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LAST_COMPLETION_UNDO_KEY);
+    if (raw === cachedUndoRaw) return cachedUndo;
+    cachedUndoRaw = raw;
+    cachedUndo = raw ? (JSON.parse(raw) as LastCompletionUndo) : null;
+  } catch {
+    cachedUndoRaw = null;
+    cachedUndo = null;
+  }
+  return cachedUndo;
+}
+
 // Cache the server snapshot to avoid infinite loop warnings from React
 const EMPTY_REMINDERS: Reminder[] = [];
 function getRemindersServer(): Reminder[] {
@@ -136,6 +154,11 @@ export function useReminders() {
     getRemindersClient,
     getRemindersServer
   );
+  const lastCompletionUndo = useSyncExternalStore(
+    subscribeReminders,
+    getLastCompletionUndoClient,
+    () => null
+  );
 
   const addReminder = useCallback((reminder: Omit<Reminder, 'id' | 'createdAt'>) => {
     const newReminder: Reminder = {
@@ -156,6 +179,18 @@ export function useReminders() {
   /** Mark one occurrence (Gregorian YYYY-MM-DD) of a reminder as done / not done. */
   const setOccurrenceDone = useCallback((id: string, isoDay: string, done: boolean) => {
     const current = getRemindersClient();
+    if (done) {
+      const target = current.find((r) => r.id === id);
+      if (target) {
+        const undo: LastCompletionUndo = { kind: 'occurrence', reminderId: id, isoDay, title: target.title };
+        try { localStorage.setItem(LAST_COMPLETION_UNDO_KEY, JSON.stringify(undo)); cachedUndoRaw = null; } catch { /* storage unavailable */ }
+      }
+    } else {
+      const last = getLastCompletionUndoClient();
+      if (last?.kind === 'occurrence' && last.reminderId === id && last.isoDay === isoDay) {
+        try { localStorage.removeItem(LAST_COMPLETION_UNDO_KEY); cachedUndoRaw = null; cachedUndo = null; } catch { /* storage unavailable */ }
+      }
+    }
     setRemindersStore(
       current.map((r) => {
         if (r.id !== id) return r;
@@ -183,13 +218,34 @@ export function useReminders() {
     if (!canCompleteOccurrence(target, isoDay)) return;
     const repeating = (target.repeat ?? (target.annual ? 'yearly' : 'none')) !== 'none';
     if (!repeating) {
+      const undo: LastCompletionUndo = { kind: 'deleted', reminder: target, title: target.title };
+      try { localStorage.setItem(LAST_COMPLETION_UNDO_KEY, JSON.stringify(undo)); cachedUndoRaw = null; } catch { /* storage unavailable */ }
       setRemindersStore(current.filter((r) => r.id !== id));
       return;
     }
+    const undo: LastCompletionUndo = { kind: 'occurrence', reminderId: id, isoDay, title: target.title };
+    try { localStorage.setItem(LAST_COMPLETION_UNDO_KEY, JSON.stringify(undo)); cachedUndoRaw = null; } catch { /* storage unavailable */ }
     const set = new Set(target.completed ?? []);
     set.add(isoDay);
     const list = [...set].sort().slice(-60);
     setRemindersStore(current.map((r) => (r.id === id ? { ...r, completed: list } : r)));
+  }, []);
+
+  const undoLastCompletion = useCallback(() => {
+    const undo = getLastCompletionUndoClient();
+    if (!undo) return;
+    const current = getRemindersClient();
+    let next = current;
+    if (undo.kind === 'deleted') {
+      if (!current.some((r) => r.id === undo.reminder.id)) next = [...current, undo.reminder];
+    } else {
+      next = current.map((r) => {
+        if (r.id !== undo.reminderId) return r;
+        return { ...r, completed: (r.completed ?? []).filter((day) => day !== undo.isoDay) };
+      });
+    }
+    try { localStorage.removeItem(LAST_COMPLETION_UNDO_KEY); cachedUndoRaw = null; cachedUndo = null; } catch { /* storage unavailable */ }
+    setRemindersStore(next);
   }, []);
 
   const deleteReminder = useCallback((id: string) => {
@@ -233,6 +289,8 @@ export function useReminders() {
     updateReminder,
     setOccurrenceDone,
     completeOccurrence,
+    lastCompletionUndo,
+    undoLastCompletion,
     deleteReminder,
     deleteMultiple,
     clearAll,

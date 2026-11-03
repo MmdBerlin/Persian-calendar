@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,23 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
   const [viewYear, setViewYear] = useState(today.jy);
   const [viewMonth, setViewMonth] = useState(today.jm);
   const [useJalali, setUseJalali] = useState(true);
+  const touchStartX = useRef<number | null>(null);
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  };
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const startX = touchStartX.current;
+    touchStartX.current = null;
+    const endX = event.changedTouches[0]?.clientX;
+    if (startX === null || endX === undefined) return;
+    const delta = endX - startX;
+    if (Math.abs(delta) < 55) return;
+    event.preventDefault();
+    // RTL: swipe left advances to the next month, swipe right goes back.
+    if (delta < 0) goToNextMonth();
+    else goToPrevMonth();
+  };
 
   // Grid cells are represented as JalaliDate objects so event/reminder matching
   // stays consistent, but Gregorian mode builds its rows from actual Gregorian dates.
@@ -129,7 +146,7 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
   };
 
   return (
-    <Card className="glass-card p-3 border-0 rounded-3xl">
+    <Card onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} className="glass-card p-3 border-0 rounded-3xl touch-pan-y">
       {/* Header: arrows on both sides, month name centered */}
       <div className="flex items-center justify-between gap-2 mb-1">
         <Button
@@ -162,14 +179,15 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
           variant="ghost"
           size="sm"
           onClick={() => {
+            // Switching calendar systems should anchor to today's real date, not
+            // convert the first day of a month (which can land in an adjacent month).
+            const now = new Date();
             if (useJalali) {
-              const g = jalaliToGregorian(viewYear, viewMonth, 1);
-              setViewYear(g.gy);
-              setViewMonth(g.gm);
+              setViewYear(now.getFullYear());
+              setViewMonth(now.getMonth() + 1);
             } else {
-              const j = gregorianToJalali(viewYear, viewMonth, 1);
-              setViewYear(j.jy);
-              setViewMonth(j.jm);
+              setViewYear(today.jy);
+              setViewMonth(today.jm);
             }
             setUseJalali((value) => !value);
           }}
@@ -225,7 +243,7 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
                 key={idx}
                 onClick={() => onSelectDate?.(d)}
                 className={`
-                  relative aspect-square min-w-0 rounded-lg transition-all duration-200 hover:bg-accent/60 active:scale-95
+                  relative aspect-square min-w-0 rounded-lg transition-colors duration-200 hover:bg-accent/60 active:scale-95
                   ${!inMonth ? 'opacity-30' : ''}
                   ${today_ ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30' : ''}
                   ${selected_ && !today_ ? 'ring-2 ring-primary bg-primary/5 text-primary font-semibold' : ''}

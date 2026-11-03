@@ -355,7 +355,7 @@ function NoteItem({
 }) {
   return (
     <div
-      className={`group relative p-3 rounded-2xl border transition-all hover:shadow-sm cursor-pointer ${
+      className={`group relative p-3 rounded-2xl border transition-colors duration-200 hover:shadow-sm cursor-pointer ${
         isSelected ? 'ring-2 ring-primary border-primary' : ''
       }`}
       style={{
@@ -449,7 +449,7 @@ function NoteDialog({ open, onOpenChange, editingNote, onSave }: NoteDialogProps
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`h-8 w-8 rounded-xl border-2 transition-all ${
+                  className={`h-8 w-8 rounded-xl border-2 transition-colors duration-200 ${
                     color === c ? 'border-primary scale-110' : 'border-border'
                   }`}
                   style={{ backgroundColor: c }}

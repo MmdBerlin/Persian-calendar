@@ -179,6 +179,14 @@ export default function Home() {
     window.history.pushState(backState, '');
     const handlePopState = () => {
       const current = backNavRef.current;
+      // Let the active child screen consume Back first (open dialog, selection mode,
+      // expanded reminder). Only then unwind tabs/settings or leave from home.
+      const detail = { handled: false };
+      window.dispatchEvent(new CustomEvent('app-back', { detail }));
+      if (detail.handled) {
+        window.history.pushState(backState, '');
+        return;
+      }
       const hasPreviousInApp = current.dayDialogOpen || (current.tab === 'settings' && current.settingsPage !== 'root') || current.tab !== 'calendar';
       if (current.dayDialogOpen) {
         setDayDialogOpen(false);
