@@ -1,26 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Vazirmatn } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { CapacitorInit } from "@/components/capacitor-init";
 import { AppSplash, SPLASH_CSS } from "@/components/app-splash";
 
-const vazirmatn = Vazirmatn({
-  subsets: ["arabic", "latin"],
-  variable: "--font-vazirmatn",
+// IRANYekanX variable font (one file covers weights 100–1000), bundled locally.
+const iranYekanX = localFont({
+  src: "./fonts/IRANYekanX-VF.ttf",
+  variable: "--font-yekan",
   display: "swap",
+  weight: "100 1000",
 });
 
 export const metadata: Metadata = {
-  title: "تقویم | شمسی و میلادی",
+  title: "Persian Calendar | تقویم شمسی و میلادی",
   description: "تقویم شمسی و میلادی با یادآور مناسبت ها و تولدها، محاسبه سن و تبدیل تاریخ",
   keywords: ["تقویم", "شمسی", "میلادی", "جلالی", "یادآور", "محاسبه سن", "تبدیل تاریخ", "Persian calendar", "Jalali"],
   authors: [{ name: "Persian Calendar" }],
-  applicationName: "تقویم شمسی",
+  applicationName: "Persian Calendar",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "تقویم شمسی",
+    title: "Persian Calendar",
     statusBarStyle: "default",
   },
   formatDetection: {
@@ -39,7 +41,7 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "تقویم شمسی و میلادی",
+    title: "Persian Calendar — تقویم شمسی و میلادی",
     description: "تقویم شمسی و میلادی با یادآور مناسبت ها و تولدها",
     type: "website",
     locale: "fa_IR",
@@ -47,7 +49,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#5856D6",
+  themeColor: "#2B62EF",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -69,7 +71,7 @@ export default function RootLayout({
         <style dangerouslySetInnerHTML={{ __html: SPLASH_CSS }} />
       </head>
       <body
-        className={`${vazirmatn.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${iranYekanX.variable} font-sans antialiased bg-background text-foreground`}
       >
         <AppSplash />
         <CapacitorInit />

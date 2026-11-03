@@ -1,25 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- App logo used on the launch screen (rounded square with a calendar glyph). -->
+<!-- Soft minimal app logo for the launch screen: frosted white disc + thin calendar glyph.
+     Also used as the Android 12+ windowSplashScreenAnimatedIcon (masked to a circle). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- frosted disc -->
     <path
-        android:fillColor="#5856D6"
-        android:pathData="M35,21 H73 A14,14 0 0 1 87,35 V73 A14,14 0 0 1 73,87 H35 A14,14 0 0 1 21,73 V35 A14,14 0 0 1 35,21 Z" />
+        android:fillColor="#24FFFFFF"
+        android:pathData="M18,54 a36,36 0 1 0 72,0 a36,36 0 1 0 -72,0 Z" />
+    <!-- thin disc ring -->
+    <path
+        android:strokeColor="#47FFFFFF"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M18,54 a36,36 0 1 0 72,0 a36,36 0 1 0 -72,0" />
+    <!-- calendar body -->
     <path
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="3"
+        android:strokeWidth="2.6"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M38,42 H70 A4,4 0 0 1 74,46 V70 A4,4 0 0 1 70,74 H38 A4,4 0 0 1 34,70 V46 A4,4 0 0 1 38,42 Z" />
+        android:fillColor="#00000000"
+        android:pathData="M44,41 H64 A6,6 0 0 1 70,47 V67 A6,6 0 0 1 64,73 H44 A6,6 0 0 1 38,67 V47 A6,6 0 0 1 44,41 Z" />
+    <!-- header line + hangers -->
     <path
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="3"
+        android:strokeWidth="2.6"
         android:strokeLineCap="round"
-        android:pathData="M34,53 H74 M44,36 V46 M64,36 V46" />
+        android:fillColor="#00000000"
+        android:pathData="M38,52 H70 M46,36 V46 M62,36 V46" />
+    <!-- the dot (today) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,59.5 A3.5,3.5 0 1 1 54,66.5 A3.5,3.5 0 1 1 54,59.5 Z" />
+        android:pathData="M54,59 A3,3 0 1 1 54,65 A3,3 0 1 1 54,59 Z" />
 </vector>

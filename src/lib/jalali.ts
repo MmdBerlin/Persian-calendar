@@ -388,19 +388,13 @@ export function generateJalaliMonthGrid(jy: number, jm: number): (JalaliDate | n
     nextDay++;
   }
 
-  // Group into weeks, then drop trailing weeks that contain only next-month days
-  // so every month has a consistent visual height (no extra empty row).
+  // Always exactly 6 weeks (42 cells) so every month has the same visual height.
+  // The previous version dropped trailing weeks that held only next-month days,
+  // which made the card taller/shorter from month to month (e.g. Ordibehesht
+  // next to its neighbours). Off-month cells are dimmed by the caller.
   for (let w = 0; w < 6; w++) {
     const week = flatDays.slice(w * 7, (w + 1) * 7);
     weeks.push(week);
-  }
-  while (weeks.length > 4) {
-    const last = weeks[weeks.length - 1];
-    if (last.every((d) => d.jm !== jm || d.jy !== jy)) {
-      weeks.pop();
-    } else {
-      break;
-    }
   }
   return weeks;
 }

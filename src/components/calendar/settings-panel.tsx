@@ -335,7 +335,7 @@ function AboutPage() {
         <div className="h-16 w-16 rounded-3xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mx-auto shadow-lg shadow-primary/25">
           <Sparkles className="h-7 w-7 text-primary-foreground" />
         </div>
-        <h3 className="text-lg font-bold mt-4">تقویم شمسی</h3>
+        <h3 className="text-lg font-bold mt-4" dir="ltr">Persian Calendar</h3>
         <p className="text-xs text-muted-foreground mt-1">نسخه ۲.۰</p>
 
         <div className="mt-5 space-y-3 text-sm text-muted-foreground text-right leading-relaxed">

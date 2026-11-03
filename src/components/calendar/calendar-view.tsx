@@ -116,12 +116,12 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
     d.jm === viewMonth && d.jy === viewYear;
 
   return (
-    <Card className="glass-card p-4 sm:p-6 border-0 rounded-3xl">
+    <Card className="glass-card p-4 border-0 rounded-3xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+      <div className="flex items-center justify-between mb-3.5 flex-wrap gap-2.5">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{headerInfo.primary}</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">{headerInfo.secondary}</p>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{headerInfo.primary}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{headerInfo.secondary}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <Button
@@ -145,11 +145,11 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
       </div>
 
       {/* Weekday header */}
-      <div className="grid grid-cols-7 gap-1 mb-1.5">
+      <div className="grid grid-cols-7 gap-1 mb-1">
         {WEEKDAYS_FA_ABBR.map((day, idx) => (
           <div
             key={day}
-            className={`text-center text-xs font-medium py-2 ${
+            className={`text-center text-[11px] font-medium py-1.5 ${
               idx === 6 ? 'text-rose-500' : 'text-muted-foreground'
             }`}
           >
@@ -181,7 +181,7 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
                 key={idx}
                 onClick={() => onSelectDate?.(d)}
                 className={`
-                  relative aspect-square rounded-xl p-1.5 sm:p-2 text-right transition-all duration-200
+                  relative aspect-square rounded-xl p-1.5 text-right transition-all duration-200
                   hover:bg-accent/60 active:scale-95
                   ${!inMonth ? 'opacity-30' : ''}
                   ${today_ ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30' : ''}
@@ -195,10 +195,10 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
               >
                 <div className="flex flex-col h-full">
                   <div className="flex items-start justify-between">
-                    <span className="text-sm font-semibold">
+                    <span className="text-[13px] font-semibold">
                       {toPersianDigits(d.jd)}
                     </span>
-                    <span className={`text-[10px] leading-none ${
+                    <span className={`text-[9px] leading-none ${
                       today_ ? 'text-primary-foreground/70' :
                       selected_ ? 'text-primary/70' :
                       'text-muted-foreground/60'
@@ -233,7 +233,7 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
       </AnimatePresence>
 
       {/* Legend */}
-      <div className="mt-5 pt-4 border-t flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+      <div className="mt-3.5 pt-3 border-t flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
         {CATEGORY_ORDER.filter((c) =>
           c === 'shamsi' ? settings.showShamsiEvents : c === 'qamari' ? settings.showQamariEvents : settings.showGlobalEvents
         ).map((c) => (

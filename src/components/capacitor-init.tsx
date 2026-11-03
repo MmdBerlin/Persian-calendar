@@ -6,8 +6,9 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { hideAppSplash } from '@/components/app-splash';
 
-/** Minimum time the splash stays visible so it never just flashes. */
-const MIN_SPLASH_MS = 450;
+/** Minimum time the splash stays visible so its progress bar completes and it
+ *  never just flashes (~2 seconds, matching the bar's fill animation). */
+const MIN_SPLASH_MS = 2000;
 /** Safety net: hide the splash no matter what. */
 const MAX_SPLASH_MS = 4000;
 
@@ -16,7 +17,8 @@ const startedAt = typeof performance !== 'undefined' ? performance.now() : 0;
 /**
  * CapacitorInit: runs once on the client.
  * - Hides the start-up splash (HTML splash + native Android splash) as soon as the app is ready.
- * - Inside the Android APK it also configures the StatusBar (solid white background, dark icons).
+ * - Inside the Android APK the StatusBar keeps the app-blue background with white icons while
+ *   the blue launch splash is visible, then switches to the light app style (white, dark icons).
  */
 export function CapacitorInit() {
   useEffect(() => {
@@ -29,6 +31,17 @@ export function CapacitorInit() {
         SplashScreen.hide({ fadeOutDuration: 250 }).catch(() => {
           /* already hidden */
         });
+        // The app itself is light: back to a white status bar with dark icons
+        // (and a white WebView background) once the splash is gone.
+        (async () => {
+          try {
+            await StatusBar.setStyle({ style: Style.Light });
+            await StatusBar.setBackgroundColor({ color: '#FFFFFF' });
+          } catch {
+            /* never break the app over a status bar */
+          }
+        })();
+        document.documentElement.style.setProperty('background-color', '#FFFFFF');
       }
     };
 
@@ -43,15 +56,16 @@ export function CapacitorInit() {
     if (Capacitor.isNativePlatform()) {
       (async () => {
         try {
-          // Style.Light = dark icons, for a light background
-          await StatusBar.setStyle({ style: Style.Light });
-          await StatusBar.setBackgroundColor({ color: '#FFFFFF' });
+          // While the blue launch splash is visible: app-blue bar with white icons.
+          // (Style.Dark = light icons, for a dark background)
+          await StatusBar.setStyle({ style: Style.Dark });
+          await StatusBar.setBackgroundColor({ color: '#2B62EF' });
           await StatusBar.setOverlaysWebView({ overlay: false });
         } catch {
           // some calls are not supported on every Android version; never break the app
         }
       })();
-      document.documentElement.style.setProperty('background-color', '#FFFFFF');
+      document.documentElement.style.setProperty('background-color', '#2B62EF');
     }
 
     return () => {

@@ -33,7 +33,7 @@ npm install
 npm run build
 
 npm install @capacitor/core @capacitor/cli @capacitor/android
-npx cap init "تقویم شمسی" "com.persiancalendar.app" --web-dir=out
+npx cap init "Persian Calendar" "com.persiancalendar.app" --web-dir=out
 npx cap add android
 npx cap copy
 npx cap sync
@@ -77,11 +77,11 @@ npx cap open android
 
 | ویژگی | مقدار |
 |---|---|
-| نام | تقویم شمسی میلادی |
+| نام | Persian Calendar |
 | Package ID | `com.persiancalendar.app` |
 | حداقل اندروید | ۸.۰ (API 26) |
 | زبان | فارسی (RTL) |
-| تم رنگ | `#5856D6` |
+| تم رنگ | `#2B62EF` |
 | حالت | آفلاین / محلی |
 | اندازه APK | ۳-۵ مگابایت |
 

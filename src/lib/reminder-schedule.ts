@@ -122,6 +122,24 @@ export function isCompleted(r: Pick<Reminder, 'completed'>, day: Date): boolean 
   return !!r.completed && r.completed.includes(isoOf(day));
 }
 
+/** یادآور سالانه: تولد، سالگرد و هر چیز مشابه که هر سال تکرار می‌شود. */
+export function isYearlyReminder(r: Pick<Reminder, 'repeat' | 'annual'>): boolean {
+  return repeatOf(r) === 'yearly';
+}
+
+/**
+ * «انجام شد» برای این سررسید مجاز است؟ — برای همه یادآورها:
+ * فقط در روز موعد و فقط یک بار می‌شه زد (تولد و سالگرد و دارو و قبض و ... یکسان).
+ * روزانه‌ها هر روز موعدشان است، پس هر روز یک بار می‌شود زد.
+ */
+export function canCompleteOccurrence(
+  r: Pick<Reminder, 'completed'>,
+  isoDay: string
+): boolean {
+  if (isoDay !== isoOf(new Date())) return false; // فقط در روز موعد
+  return !(r.completed ?? []).includes(isoDay); // و فقط یک بار
+}
+
 /** First date of a repeating reminder (needs a year; falls back to the creation year). */
 function anchorOf(r: Reminder): Date {
   const y = r.year ?? partsOf(new Date(r.createdAt || Date.now()), r.calendar).y;

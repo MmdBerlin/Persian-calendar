@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useSyncExternalStore } from 'react';
+import { canCompleteOccurrence } from '@/lib/reminder-schedule';
 
 export type ReminderType =
   | 'birthday'
@@ -169,13 +170,17 @@ export function useReminders() {
   }, []);
 
   /**
-   * "انجام شد": a one-time reminder is removed; a repeating one only skips this occurrence
-   * (the series continues, and the occurrence can be restored with setOccurrenceDone(..., false)).
+   * "انجام شد" — برای همه یادآورها فقط در روز موعد و فقط یک بار زده می‌شود
+   * (see canCompleteOccurrence in reminder-schedule).
+   * یک‌باره‌ها با «انجام شد» حذف می‌شوند؛ تکرارشونده‌ها فقط همان سررسید رد می‌شود
+   * (و با setOccurrenceDone(..., false) قابل برگرداندن است).
    */
   const completeOccurrence = useCallback((id: string, isoDay: string) => {
     const current = getRemindersClient();
     const target = current.find((r) => r.id === id);
     if (!target) return;
+    // همه یادآورها: فقط در روز موعد و فقط یک بار (حتی یک‌باره‌ها)
+    if (!canCompleteOccurrence(target, isoDay)) return;
     const repeating = (target.repeat ?? (target.annual ? 'yearly' : 'none')) !== 'none';
     if (!repeating) {
       setRemindersStore(current.filter((r) => r.id !== id));

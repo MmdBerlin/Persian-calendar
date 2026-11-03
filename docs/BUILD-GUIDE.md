@@ -133,7 +133,7 @@ cd android && chmod +x gradlew && ./gradlew assembleDebug
 | خروجی `next build` با Capacitor جور نیست | `next.config.ts` الان `output: 'export'` دارد — نباید به `standalone` برگردانید |
 | `Cannot find Android SDK` | `export ANDROID_HOME=$HOME/Android/Sdk` |
 | `Java version mismatch` | JDK 17 نصب کنید |
-| نوتیف در APK نمی آید | اول زنگوله بالا سمت چپ را بزنید تا اجازه نوتیف داده شود؛ بعد تنظیمات گوشی: Settings > Apps > تقویم شمسی > Notifications را روشن کنید |
+| نوتیف در APK نمی آید | اول زنگوله بالا سمت چپ را بزنید تا اجازه نوتیف داده شود؛ بعد تنظیمات گوشی: Settings > Apps > Persian Calendar > Notifications را روشن کنید |
 | نوتیف ها با تاخیر می آیند (اندروید ۱۲ به بالا) | اجازه «یادآورها و هشدارها» (Alarms & reminders) را بدهید — برنامه بعد از فعال کردن نوتیف، خودش بنر/تُست فعال‌سازی نشان می‌دهد |
 | نوتیف می گوید «پشتیبانی نمی شود» | اگر نسخه قدیمی APK را دارید، با سورس جدید دوباره build بگیرید — این باگ فیکس شد |
 | محتوا زیر نوار اعلان می رود | هدر کلاس `safe-top` دارد؛ اگر مشکل ادامه داشت مطمئن شوید `cap sync` بعد از تغییرات اجرا شده |
@@ -145,12 +145,12 @@ cd android && chmod +x gradlew && ./gradlew assembleDebug
 
 | ویژگی | مقدار |
 |---|---|
-| **نام اپ** | تقویم شمسی میلادی |
+| **نام اپ** | Persian Calendar |
 | **Package ID** | `com.persiancalendar.app` |
 | **حداقل اندروید** | ۸.۰ (API 26) |
 | **اندروید هدف** | ۱۴ (API 34) |
 | **جهت** | عمودی (portrait) |
-| **تم رنگ** | `#5856D6` |
+| **تم رنگ** | `#2B62EF` |
 | **زبان** | فارسی (RTL) |
 | **حالت** | آفلاین / محلی |
 | **نوتیف** | بومی (Capacitor LocalNotifications) |

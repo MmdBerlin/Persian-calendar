@@ -1,8 +1,16 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Calendar, Info } from 'lucide-react';
 import {
   JALALI_MONTHS,
@@ -14,7 +22,7 @@ import {
   type JalaliDate,
 } from '@/lib/jalali';
 import { getEventsForJalaliDate, CATEGORY_STYLES, HOLIDAY_STYLE } from '@/lib/events';
-import { occursOnDate, isoOf, isCompleted, describeRepeat } from '@/lib/reminder-schedule';
+import { occursOnDate, isoOf, isCompleted, describeRepeat, isYearlyReminder } from '@/lib/reminder-schedule';
 import { formatNotifyTime } from '@/lib/notification-text';
 import { useEventsVersion } from '@/hooks/use-events-version';
 import { CheckCircle2, RotateCcw } from 'lucide-react';
@@ -49,6 +57,14 @@ export function DayDetails({ date, reminders, settings, onDone, onUndo }: DayDet
     [reminders, gregorian.gy, gregorian.gm, gregorian.gd]
   );
   const dayIso = isoOf(new Date(gregorian.gy, gregorian.gm - 1, gregorian.gd));
+
+  // «انجام شد» برای یادآورهای سالانه فقط در روز موعد معنا دارد
+  const now = new Date();
+  const selectedIsToday =
+    gregorian.gy === now.getFullYear() &&
+    gregorian.gm === now.getMonth() + 1 &&
+    gregorian.gd === now.getDate();
+  const [confirmDone, setConfirmDone] = useState<Reminder | null>(null);
 
   return (
     <Card className="glass-card p-5 border-0 rounded-3xl">
@@ -119,6 +135,9 @@ export function DayDetails({ date, reminders, settings, onDone, onUndo }: DayDet
           {dayReminders.map((r) => {
             const done = isCompleted(r, new Date(gregorian.gy, gregorian.gm - 1, gregorian.gd));
             const repeatText = describeRepeat(r);
+            // همه یادآورها: «انجام شد» فقط در روز موعد (همان امروز) فعال است
+            const yearly = isYearlyReminder(r);
+            const dueToday = selectedIsToday;
             return (
             <div key={r.id} className={`rounded-lg bg-background/60 border p-3 ${done ? 'opacity-60' : ''}`}>
               <div className="flex items-start justify-between gap-2">
@@ -134,10 +153,17 @@ export function DayDetails({ date, reminders, settings, onDone, onUndo }: DayDet
               {r.description && (
                 <p className="text-xs text-muted-foreground mt-1">{r.description}</p>
               )}
-              {(done ? onUndo : onDone) && (
+              {dueToday && (done ? onUndo : onDone) && (
                 <button
                   type="button"
-                  onClick={() => (done ? onUndo : onDone)!(r.id, dayIso)}
+                  onClick={() => {
+                    if (done) {
+                      onUndo?.(r.id, dayIso);
+                      return;
+                    }
+                    if (yearly) setConfirmDone(r); // قبل از ثبت، اطمینان می‌گیریم
+                    else onDone?.(r.id, dayIso);
+                  }}
                   className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium border transition-colors ${
                     done
                       ? 'border-border text-muted-foreground hover:bg-muted'
@@ -159,6 +185,32 @@ export function DayDetails({ date, reminders, settings, onDone, onUndo }: DayDet
           برای این روز مناسبت یا یادآوری نیست — با دکمه پایین یکی بساز!
         </div>
       )}
+
+      {/* تأیید «انجام شد» برای یادآورهای سالانه (تولد، سالگرد و مانند آن) */}
+      <Dialog open={confirmDone !== null} onOpenChange={(v) => !v && setConfirmDone(null)}>
+        <DialogContent className="sm:max-w-sm rounded-3xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">«انجام شد» ثبت بشه؟</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            «{confirmDone?.title}» برای امسال انجام‌شده ثبت می‌شه و تا سال بعد دیگه یادآوری نمی‌گیری. مطمئنی؟
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setConfirmDone(null)} className="rounded-2xl">
+              انصراف
+            </Button>
+            <Button
+              onClick={() => {
+                if (confirmDone) onDone?.(confirmDone.id, dayIso);
+                setConfirmDone(null);
+              }}
+              className="rounded-2xl"
+            >
+              بله، انجام شد
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

@@ -73,7 +73,7 @@ self.addEventListener('message', (event) => {
   if (type === 'SHOW_NOTIFICATION') {
     const { title, body, icon, tag } = payload || {};
     event.waitUntil(
-      self.registration.showNotification(title || 'تقویم شمسی', {
+      self.registration.showNotification(title || 'Persian Calendar', {
         body: body || '',
         icon: icon || '/icons/icon-192.png',
         badge: '/icons/icon-96.png',

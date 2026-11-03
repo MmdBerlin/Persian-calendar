@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash_background">#F7F8FA</color>
+    <!-- App blue = light theme primary (oklch(0.55 0.22 264)). -->
+    <color name="splash_background">#2B62EF</color>
+    <color name="splash_background_end">#1B4DD1</color>
 </resources>

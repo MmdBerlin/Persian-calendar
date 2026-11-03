@@ -2,21 +2,23 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.persiancalendar.app',
-  appName: 'تقویم شمسی',
+  appName: 'Persian Calendar',
   webDir: 'out',
-  // WebView background while the page loads (prevents a black/dark flash)
-  backgroundColor: '#F7F8FA',
+  // WebView background while the page loads — the app blue, same as the launch splash
+  backgroundColor: '#2B62EF',
   android: {
     allowMixedContent: false,
   },
   plugins: {
     LocalNotifications: {
       smallIcon: 'ic_stat_icon',
-      iconColor: '#5856D6',
+      iconColor: '#2B62EF',
     },
+    // Blue with white icons while the launch splash shows; CapacitorInit switches
+    // back to white with dark icons as soon as the app UI is ready.
     StatusBar: {
-      backgroundColor: '#FFFFFF',
-      style: 'LIGHT',
+      backgroundColor: '#2B62EF',
+      style: 'DARK',
       overlaysWebView: false,
     },
     SplashScreen: {
@@ -24,7 +26,7 @@ const config: CapacitorConfig = {
       launchAutoHide: false,
       launchShowDuration: 0,
       launchFadeOutDuration: 250,
-      backgroundColor: '#F7F8FA',
+      backgroundColor: '#2B62EF',
       showSpinner: false,
     },
   },

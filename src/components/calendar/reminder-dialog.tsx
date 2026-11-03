@@ -1,12 +1,19 @@
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CalendarDays } from 'lucide-react';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer';
+import { CalendarDays, X } from 'lucide-react';
 import {
   JALALI_MONTHS,
   GREGORIAN_MONTHS,
@@ -26,15 +33,6 @@ import {
   REMINDER_TYPE_HINTS,
   REMINDER_TYPE_ICON_BOX,
 } from '@/lib/reminder-types';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { MonthSelect } from '@/components/calendar/month-select';
 import { TimePicker } from '@/components/calendar/time-picker';
 import { ReminderTypeIcon } from '@/components/calendar/reminder-type-icon';
@@ -54,7 +52,18 @@ import {
   weekdayName,
   type RepeatKind,
 } from '@/lib/reminder-schedule';
-import { X } from 'lucide-react';
+
+/**
+ * یادآور جدید/ویرایش — به‌جای فرم بلند یک‌تکه، یک شیت پایینِ صفحه (نیم‌صفحه)
+ * با سه مرحله: ۱) نوع و عنوان ۲) زمان و تکرار ۳) یادآوری و توضیحات.
+ * منطق ذخیره دقیقاً مثل قبل است؛ فقط چیدمان مرحله‌ای شده.
+ */
+
+const STEPS = [
+  { title: 'نوع و عنوان', hint: 'اول بگو چی می‌خوای یادت بمونه' },
+  { title: 'زمان و تکرار', hint: 'کی و چند بار یک بار اتفاق می‌افته؟' },
+  { title: 'یادآوری', hint: 'کی‌ها و چه ساعتی خبرت کنیم؟' },
+];
 
 /** "HH:MM" from <input type="time"> -> hour/minute (falls back to 09:00). */
 function parseTimeInput(value: string): { hour: number; minute: number } {
@@ -107,6 +116,21 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   const [notifyTime, setNotifyTime] = useState<string>(
     editingReminder ? formatNotifyTime(editingReminder) : '09:00'
   );
+
+  // ---- wizard state ----
+  const [step, setStep] = useState(0);
+  const [stepDir, setStepDir] = useState<1 | -1>(1);
+  const reduceMotion = useReducedMotion() ?? false;
+
+  const goToStep = (s: number) => {
+    setStepDir(s > step ? 1 : -1);
+    setStep(s);
+  };
+  const goNext = () => goToStep(Math.min(STEPS.length - 1, step + 1));
+  const goBack = () => {
+    if (step === 0) onOpenChange(false);
+    else goToStep(step - 1);
+  };
 
   const hints = REMINDER_TYPE_HINTS[type];
   const birthLike = type === 'birthday' || type === 'anniversary';
@@ -246,274 +270,351 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   const repeatOptions: RepeatKind[] = birthLike ? ['none', 'yearly'] : ['none', 'daily', 'weekly', 'monthly', 'yearly'];
   const unitLabel = effectiveRepeat === 'daily' ? 'روز' : effectiveRepeat === 'weekly' ? 'هفته' : 'ماه';
   const offsetChoices = [...new Set([...OFFSET_PRESETS, ...offsets])].sort((a, b) => a - b);
+  const slide = reduceMotion ? 0 : 20;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-3xl" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="text-xl">
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent dir="rtl" className="mx-auto sm:max-w-md rounded-t-3xl">
+        <DrawerHeader className="pb-1 text-right">
+          <DrawerTitle className="text-lg text-right">
             {editingReminder ? 'ویرایش یادآور' : 'یادآور جدید'}
-          </DialogTitle>
-        </DialogHeader>
+          </DrawerTitle>
+          <DrawerDescription className="text-right text-xs">{STEPS[step].hint}</DrawerDescription>
 
-        {defaultDate && !editingReminder && (
-          <div className="flex items-center gap-2 rounded-xl bg-primary/5 px-3 py-2 text-xs text-primary">
-            <CalendarDays className="h-4 w-4 shrink-0" />
-            <span>
-              برای روز {WEEKDAYS_FA[jalaliWeekday(defaultDate.jy, defaultDate.jm, defaultDate.jd)]}{' '}
-              {toPersianDigits(defaultDate.jd)} {JALALI_MONTHS[defaultDate.jm - 1]} {toPersianDigits(defaultDate.jy)}
-              <span className="text-muted-foreground"> (در صورت نیاز تغییر دهید)</span>
-            </span>
-          </div>
-        )}
-
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto no-scrollbar px-1">
-          <div className="space-y-2">
-            <Label>نوع یادآور</Label>
-            <Select value={type} onValueChange={(v) => changeType(v as ReminderType)} dir="rtl">
-              <SelectTrigger className="w-full rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent dir="rtl" className="max-h-[50vh]">
-                {REMINDER_TYPE_GROUPS.map((g) => (
-                  <SelectGroup key={g.label}>
-                    <SelectLabel className="text-[11px]">{g.label}</SelectLabel>
-                    {g.types.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        <span className="flex items-center gap-2">
-                          <span className={`h-6 w-6 rounded-lg flex items-center justify-center ${REMINDER_TYPE_ICON_BOX[t]}`}>
-                            <ReminderTypeIcon type={t} className="h-3.5 w-3.5" />
-                          </span>
-                          {REMINDER_TYPE_LABELS[t]}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="title">{hints.titleLabel}</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={hints.titlePlaceholder}
-              className="rounded-lg"
-              autoFocus
-            />
-            <p className="text-[11px] text-muted-foreground leading-relaxed">{hints.titleHelp}</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>نوع تقویم</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['jalali', 'gregorian'] as const).map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => changeCalendar(c)}
-                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                    calendar === c
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/40 text-muted-foreground hover:bg-muted'
+          {/* مرحله‌ها: سه بخش با نوار پیشرفت */}
+          <div className="flex items-start gap-1.5 mt-3">
+            {STEPS.map((s, i) => (
+              <button
+                key={s.title}
+                type="button"
+                onClick={() => (i < step || (i === step + 1 && step === 0 && title.trim()) ? goToStep(i) : undefined)}
+                className="flex-1 text-right"
+                aria-current={i === step ? 'step' : undefined}
+              >
+                <div
+                  className={`h-1.5 rounded-full transition-colors duration-300 ${
+                    i <= step ? 'bg-primary' : 'bg-muted'
+                  }`}
+                />
+                <span
+                  className={`block text-[10px] mt-1 leading-tight transition-colors ${
+                    i === step ? 'text-primary font-semibold' : 'text-muted-foreground'
                   }`}
                 >
-                  {c === 'jalali' ? 'شمسی' : 'میلادی'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {hints.yearLabel && (
-            <div className="space-y-2">
-              <Label htmlFor="year">{hints.yearLabel}</Label>
-              <Input
-                id="year"
-                value={year}
-                onChange={(e) => setYear(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
-                placeholder={calendar === 'jalali' ? 'مثلاً ۱۳۷۰' : 'e.g. 1990'}
-                className="rounded-lg"
-                dir="ltr"
-                inputMode="numeric"
-              />
-              <p className="text-[11px] text-muted-foreground">{hints.yearHelp}</p>
-            </div>
-          )}
-
-          <div className={`grid gap-3 ${showStartYear ? 'grid-cols-3' : 'grid-cols-2'}`}>
-            {showStartYear && (
-              <div className="space-y-2">
-                <Label htmlFor="startYear">{subYearly ? 'سال شروع' : 'سال'}</Label>
-                <Input
-                  id="startYear"
-                  value={startYear}
-                  onChange={(e) => setStartYear(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
-                  className="rounded-lg text-center"
-                  dir="ltr"
-                  inputMode="numeric"
-                />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label>ماه</Label>
-              <MonthSelect value={month} onChange={setMonth} months={monthsList} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="day">روز</Label>
-              <Input
-                id="day"
-                value={day}
-                onChange={(e) => handleDayChange(e.target.value)}
-                onBlur={handleDayBlur}
-                className="rounded-lg text-center"
-                dir="ltr"
-                inputMode="numeric"
-                placeholder="۱"
-                maxLength={2}
-              />
-            </div>
-          </div>
-
-          {/* Repeat */}
-          <div className="space-y-2">
-            <Label>تکرار</Label>
-            <div className={`grid gap-1.5 ${birthLike ? 'grid-cols-2' : 'grid-cols-5'}`}>
-              {repeatOptions.map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => chooseRepeat(k)}
-                  className={`px-1 py-2 rounded-xl text-[11px] font-medium transition-all ${
-                    effectiveRepeat === k
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/40 text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  {k === 'none' ? (birthLike ? 'یک بار' : 'ندارد') : k === 'yearly' && birthLike ? 'هر سال' : REPEAT_LABELS[k]}
-                </button>
-              ))}
-            </div>
-            {subYearly && (
-              <div className="flex items-center gap-2 text-sm">
-                <span>هر</span>
-                <Input
-                  value={repeatEvery}
-                  onChange={(e) => setRepeatEvery(e.target.value.replace(/[^\d]/g, '').slice(0, 3))}
-                  onBlur={() => setRepeatEvery(String(everyNum))}
-                  className="rounded-lg text-center w-20"
-                  dir="ltr"
-                  inputMode="numeric"
-                />
-                <span>{unitLabel}</span>
-                {effectiveRepeat === 'weekly' && (
-                  <span className="text-[11px] text-muted-foreground">
-                    (روز {nextDates[0] ? weekdayName(nextDates[0]) : ''})
-                  </span>
-                )}
-              </div>
-            )}
-            {nextDates.length > 0 && (
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                سررسید بعدی:{' '}
-                {nextDates.map((d) => `${weekdayName(d)} ${formatOccurrence(d, calendar)}`).join(' • ')}
-              </p>
-            )}
-            {effectiveRepeat === 'monthly' && safeDay > 28 && (
-              <p className="text-[11px] text-amber-600">در ماه هایی که این روز را ندارند، آخرین روز ماه اعلام می شود.</p>
-            )}
-          </div>
-
-          {/* Several notification times */}
-          <div className="space-y-2">
-            <Label>کی‌ها یادت بندازیم؟</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {offsetChoices.map((n) => {
-                const on = offsets.includes(n);
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => toggleOffset(n)}
-                    className={`px-2.5 py-1.5 rounded-full text-[11px] font-medium border transition-colors ${
-                      on
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/40 text-muted-foreground border-transparent hover:bg-muted'
-                    }`}
-                  >
-                    {offsetLabel(n)}
-                    {on && !OFFSET_PRESETS.includes(n) && <X className="inline h-3 w-3 mr-1" />}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                value={customOffset}
-                onChange={(e) => setCustomOffset(e.target.value.replace(/[^\d]/g, '').slice(0, 3))}
-                onKeyDown={(e) => e.key === 'Enter' && addCustomOffset()}
-                placeholder="تعداد روز دلخواه"
-                className="rounded-lg h-9 text-center"
-                dir="ltr"
-                inputMode="numeric"
-              />
-              <Button type="button" variant="outline" size="sm" className="rounded-lg h-9" onClick={addCustomOffset}>
-                افزودن
-              </Button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              می‌تونی مثلا «۳ روز قبل» و «۱ روز قبل» و «همان روز» رو با هم انتخاب کنی. حداقل یکی لازمه.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notifyTime">ساعت و دقیقه نوتیف</Label>
-            <TimePicker
-              id="notifyTime"
-              value={notifyTime}
-              onChange={setNotifyTime}
-              className="rounded-xl"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">توضیحات (اختیاری)</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={hints.descriptionPlaceholder}
-              className="rounded-lg resize-none"
-              rows={2}
-            />
-          </div>
-
-          <div className="rounded-xl border border-dashed bg-muted/30 p-3 space-y-2">
-            <p className="text-[10px] text-muted-foreground">پیش‌نمایش نوتیف</p>
-            {previews.map((p, i) => (
-              <div key={i}>
-                <p className="text-sm font-semibold">{p.title}</p>
-                <p className="text-xs text-muted-foreground whitespace-pre-line mt-0.5">{p.body}</p>
-              </div>
+                  {s.title}
+                </span>
+              </button>
             ))}
-            <p className="text-[10px] text-muted-foreground">
-              زیر هر نوتیف دکمه‌های «انجام شد»، «۱۰ دقیقه بعد» و «۱ ساعت بعد» هست.
-              {effectiveRepeat === 'none' ? ' با «انجام شد»، یادآور حذف می‌شه.' : ' با «انجام شد» فقط همین سررسید رد می‌شه.'}
-            </p>
           </div>
+        </DrawerHeader>
+
+        <div
+          className="px-4 pb-2 overflow-y-auto no-scrollbar"
+          style={{ maxHeight: '56vh' }}
+          data-vaul-no-drag
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: stepDir * slide }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: stepDir * -slide }}
+              transition={{ duration: reduceMotion ? 0.12 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {/* ---------- مرحله ۱: نوع و عنوان ---------- */}
+              {step === 0 && (
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label>نوع یادآور</Label>
+                    <div className="space-y-2.5">
+                      {REMINDER_TYPE_GROUPS.map((g) => (
+                        <div key={g.label}>
+                          <p className="text-[10px] text-muted-foreground mb-1.5">{g.label}</p>
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {g.types.map((t) => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => changeType(t)}
+                                aria-pressed={type === t}
+                                className={`flex flex-col items-center gap-1 rounded-2xl py-2 px-1 border transition-all active:scale-95 ${
+                                  type === t
+                                    ? 'border-primary bg-primary/5 ring-1 ring-primary/40'
+                                    : 'border-border/60 hover:bg-muted/50'
+                                }`}
+                              >
+                                <span className={`h-8 w-8 rounded-xl flex items-center justify-center ${REMINDER_TYPE_ICON_BOX[t]}`}>
+                                  <ReminderTypeIcon type={t} className="h-4 w-4" />
+                                </span>
+                                <span
+                                  className={`text-[10px] leading-tight ${
+                                    type === t ? 'text-primary font-semibold' : 'text-muted-foreground'
+                                  }`}
+                                >
+                                  {REMINDER_TYPE_LABELS[t]}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="title">{hints.titleLabel}</Label>
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder={hints.titlePlaceholder}
+                      className="rounded-xl"
+                      autoFocus
+                    />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{hints.titleHelp}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* ---------- مرحله ۲: زمان و تکرار ---------- */}
+              {step === 1 && (
+                <div className="space-y-4 pt-2">
+                  {defaultDate && !editingReminder && (
+                    <div className="flex items-center gap-2 rounded-xl bg-primary/5 px-3 py-2 text-xs text-primary">
+                      <CalendarDays className="h-4 w-4 shrink-0" />
+                      <span>
+                        برای روز {WEEKDAYS_FA[jalaliWeekday(defaultDate.jy, defaultDate.jm, defaultDate.jd)]}{' '}
+                        {toPersianDigits(defaultDate.jd)} {JALALI_MONTHS[defaultDate.jm - 1]} {toPersianDigits(defaultDate.jy)}
+                        <span className="text-muted-foreground"> (در صورت نیاز تغییر دهید)</span>
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>نوع تقویم</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['jalali', 'gregorian'] as const).map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => changeCalendar(c)}
+                          className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                            calendar === c
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted/40 text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {c === 'jalali' ? 'شمسی' : 'میلادی'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {hints.yearLabel && (
+                    <div className="space-y-2">
+                      <Label htmlFor="year">{hints.yearLabel}</Label>
+                      <Input
+                        id="year"
+                        value={year}
+                        onChange={(e) => setYear(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
+                        placeholder={calendar === 'jalali' ? 'مثلاً ۱۳۷۰' : 'e.g. 1990'}
+                        className="rounded-xl"
+                        dir="ltr"
+                        inputMode="numeric"
+                      />
+                      <p className="text-[11px] text-muted-foreground">{hints.yearHelp}</p>
+                    </div>
+                  )}
+
+                  <div className={`grid gap-3 ${showStartYear ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    {showStartYear && (
+                      <div className="space-y-2">
+                        <Label htmlFor="startYear">{subYearly ? 'سال شروع' : 'سال'}</Label>
+                        <Input
+                          id="startYear"
+                          value={startYear}
+                          onChange={(e) => setStartYear(e.target.value.replace(/[^\d]/g, '').slice(0, 4))}
+                          className="rounded-xl text-center"
+                          dir="ltr"
+                          inputMode="numeric"
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label>ماه</Label>
+                      <MonthSelect value={month} onChange={setMonth} months={monthsList} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="day">روز</Label>
+                      <Input
+                        id="day"
+                        value={day}
+                        onChange={(e) => handleDayChange(e.target.value)}
+                        onBlur={handleDayBlur}
+                        className="rounded-xl text-center"
+                        dir="ltr"
+                        inputMode="numeric"
+                        placeholder="۱"
+                        maxLength={2}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Repeat */}
+                  <div className="space-y-2">
+                    <Label>تکرار</Label>
+                    <div className={`grid gap-1.5 ${birthLike ? 'grid-cols-2' : 'grid-cols-5'}`}>
+                      {repeatOptions.map((k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => chooseRepeat(k)}
+                          className={`px-1 py-2 rounded-xl text-[11px] font-medium transition-all ${
+                            effectiveRepeat === k
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted/40 text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {k === 'none' ? (birthLike ? 'یک بار' : 'ندارد') : k === 'yearly' && birthLike ? 'هر سال' : REPEAT_LABELS[k]}
+                        </button>
+                      ))}
+                    </div>
+                    {subYearly && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span>هر</span>
+                        <Input
+                          value={repeatEvery}
+                          onChange={(e) => setRepeatEvery(e.target.value.replace(/[^\d]/g, '').slice(0, 3))}
+                          onBlur={() => setRepeatEvery(String(everyNum))}
+                          className="rounded-xl text-center w-20"
+                          dir="ltr"
+                          inputMode="numeric"
+                        />
+                        <span>{unitLabel}</span>
+                        {effectiveRepeat === 'weekly' && (
+                          <span className="text-[11px] text-muted-foreground">
+                            (روز {nextDates[0] ? weekdayName(nextDates[0]) : ''})
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {nextDates.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        سررسید بعدی:{' '}
+                        {nextDates.map((d) => `${weekdayName(d)} ${formatOccurrence(d, calendar)}`).join(' • ')}
+                      </p>
+                    )}
+                    {effectiveRepeat === 'monthly' && safeDay > 28 && (
+                      <p className="text-[11px] text-amber-600">در ماه هایی که این روز را ندارند، آخرین روز ماه اعلام می شود.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ---------- مرحله ۳: یادآوری و توضیحات ---------- */}
+              {step === 2 && (
+                <div className="space-y-4 pt-2">
+                  {/* Several notification times */}
+                  <div className="space-y-2">
+                    <Label>کی‌ها یادت بندازیم؟</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {offsetChoices.map((n) => {
+                        const on = offsets.includes(n);
+                        return (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => toggleOffset(n)}
+                            className={`px-2.5 py-1.5 rounded-full text-[11px] font-medium border transition-colors ${
+                              on
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-muted/40 text-muted-foreground border-transparent hover:bg-muted'
+                            }`}
+                          >
+                            {offsetLabel(n)}
+                            {on && !OFFSET_PRESETS.includes(n) && <X className="inline h-3 w-3 mr-1" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={customOffset}
+                        onChange={(e) => setCustomOffset(e.target.value.replace(/[^\d]/g, '').slice(0, 3))}
+                        onKeyDown={(e) => e.key === 'Enter' && addCustomOffset()}
+                        placeholder="تعداد روز دلخواه"
+                        className="rounded-xl h-9 text-center"
+                        dir="ltr"
+                        inputMode="numeric"
+                      />
+                      <Button type="button" variant="outline" size="sm" className="rounded-xl h-9" onClick={addCustomOffset}>
+                        افزودن
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      می‌تونی مثلا «۳ روز قبل» و «۱ روز قبل» و «همان روز» رو با هم انتخاب کنی. حداقل یکی لازمه.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notifyTime">ساعت و دقیقه نوتیف</Label>
+                    <TimePicker
+                      id="notifyTime"
+                      value={notifyTime}
+                      onChange={setNotifyTime}
+                      className="rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">توضیحات (اختیاری)</Label>
+                    <Textarea
+                      id="description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder={hints.descriptionPlaceholder}
+                      className="rounded-xl resize-none"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="rounded-xl border border-dashed bg-muted/30 p-3 space-y-2">
+                    <p className="text-[10px] text-muted-foreground">پیش‌نمایش نوتیف</p>
+                    {previews.map((p, i) => (
+                      <div key={i}>
+                        <p className="text-sm font-semibold">{p.title}</p>
+                        <p className="text-xs text-muted-foreground whitespace-pre-line mt-0.5">{p.body}</p>
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground">
+                      زیر هر نوتیف دکمه‌های «انجام شد»، «۱۰ دقیقه بعد» و «۱ ساعت بعد» هست.
+                      «انجام شد» فقط در روز موعد و فقط یک بار قابل زدن است؛
+                      {effectiveRepeat === 'none'
+                        ? ' با «انجام شد»، یادآور یک‌باره حذف می‌شه.'
+                        : ' با «انجام شد» همین سررسید رد می‌شه و سری بعدی سر وقت خودش یادآوری می‌شه.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl">
-            انصراف
+        <div className="flex items-center gap-2 p-4 pt-2 border-t border-border/50 bg-background">
+          <Button variant="outline" onClick={goBack} className="rounded-2xl flex-1">
+            {step === 0 ? 'انصراف' : 'قبلی'}
           </Button>
-          <Button onClick={handleSave} disabled={!title.trim()} className="rounded-2xl">
-            {editingReminder ? 'ذخیره' : 'افزودن'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          {step < STEPS.length - 1 ? (
+            <Button onClick={goNext} disabled={step === 0 && !title.trim()} className="rounded-2xl flex-1">
+              بعدی
+            </Button>
+          ) : (
+            <Button onClick={handleSave} disabled={!title.trim()} className="rounded-2xl flex-1">
+              {editingReminder ? 'ذخیره' : 'ثبت یادآور'}
+            </Button>
+          )}
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }

@@ -43,7 +43,7 @@ import {
   REMINDER_TYPE_COLORS,
 } from '@/lib/reminder-types';
 import { formatNotifyTime } from '@/lib/notification-text';
-import { nextOccurrence, describeRepeat, isoOf, isCompleted, offsetsOf, offsetLabel, formatOccurrence, startOfDay } from '@/lib/reminder-schedule';
+import { nextOccurrence, describeRepeat, isoOf, isCompleted, offsetsOf, offsetLabel, formatOccurrence, startOfDay, isYearlyReminder } from '@/lib/reminder-schedule';
 import { ReminderDialog } from '@/components/calendar/reminder-dialog';
 import { ReminderTypeIcon } from '@/components/calendar/reminder-type-icon';
 
@@ -64,6 +64,25 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
     const daysOf = (r: Reminder) => nextOccurrence(r, today)?.days ?? Number.MAX_SAFE_INTEGER; // finished ones last
     return [...reminders].sort((a, b) => daysOf(a) - daysOf(b));
   }, [reminders]);
+
+  // به‌جای یه لیست بلند و دراز، یادآورها دسته‌بندی می‌شن: امروز / این هفته / بعداً / تمام‌شده
+  const groups = useMemo(() => {
+    const today = startOfDay(new Date());
+    const defs: { key: string; label: string; dot: string; items: Reminder[] }[] = [
+      { key: 'today', label: 'امروز', dot: 'bg-rose-500', items: [] },
+      { key: 'week', label: 'این هفته', dot: 'bg-amber-500', items: [] },
+      { key: 'later', label: 'بعداً', dot: 'bg-primary', items: [] },
+      { key: 'done', label: 'انجام‌شده یا گذشته', dot: 'bg-muted-foreground/40', items: [] },
+    ];
+    for (const r of sortedReminders) {
+      const days = nextOccurrence(r, today)?.days ?? null;
+      if (days === null) defs[3].items.push(r);
+      else if (days === 0) defs[0].items.push(r);
+      else if (days <= 7) defs[1].items.push(r);
+      else defs[2].items.push(r);
+    }
+    return defs.filter((g) => g.items.length > 0);
+  }, [sortedReminders]);
 
   const openNewDialog = () => {
     setEditingId(null);
@@ -213,21 +232,36 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-2.5 max-h-[520px] overflow-y-auto no-scrollbar pr-0.5">
-          {sortedReminders.map((r) => (
-            <ReminderItem
-              key={r.id}
-              reminder={r}
-              onEdit={() => openEditDialog(r.id)}
-              onDelete={() => {
-                if (typeof window !== 'undefined' && window.confirm(`«${r.title}» حذف شود؟`)) {
-                  deleteReminder(r.id);
-                }
-              }}
-              selectionMode={selectionMode}
-              isSelected={selectedIds.has(r.id)}
-              onDone={(iso) => completeOccurrence(r.id, iso)}
-            />
+        <div className="space-y-4 max-h-[520px] overflow-y-auto no-scrollbar pr-0.5">
+          {groups.map((g) => (
+            <div key={g.key} className="space-y-2">
+              <div className="flex items-center justify-between px-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className={`h-1.5 w-1.5 rounded-full ${g.dot}`} />
+                  <span className="text-[11px] font-bold text-muted-foreground">{g.label}</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                  {toPersianDigits(g.items.length)}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {g.items.map((r) => (
+                  <ReminderItem
+                    key={r.id}
+                    reminder={r}
+                    onEdit={() => openEditDialog(r.id)}
+                    onDelete={() => {
+                      if (typeof window !== 'undefined' && window.confirm(`«${r.title}» حذف شود؟`)) {
+                        deleteReminder(r.id);
+                      }
+                    }}
+                    selectionMode={selectionMode}
+                    isSelected={selectedIds.has(r.id)}
+                    onDone={(iso) => completeOccurrence(r.id, iso)}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -280,6 +314,7 @@ function ReminderItem({
   onDone: (isoDay: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [confirmDone, setConfirmDone] = useState(false);
   const today = todayJalali();
   const next = nextOccurrence(reminder, startOfDay(new Date()));
   const days = next ? next.days : Number.MAX_SAFE_INTEGER;
@@ -288,6 +323,8 @@ function ReminderItem({
   const isSoon = days > 0 && days <= 7;
   const repeatText = describeRepeat(reminder);
   const offsets = offsetsOf(reminder);
+  // همه یادآورها: «انجام شد» فقط در روز موعد؛ سالانه‌ها (تولد/سالگرد) با تأیید ثبت می‌شن
+  const yearly = isYearlyReminder(reminder);
 
   let ageInfo: string | null = null;
   if (reminder.type === 'birthday' && reminder.year) {
@@ -366,14 +403,23 @@ function ReminderItem({
           <p className="text-[11px] text-muted-foreground pt-2">
             یادآوری: {offsets.map((n) => offsetLabel(n)).join('، ')}
           </p>
+          {next && !isToday && (
+            <p className="text-[11px] text-muted-foreground pt-1">
+              «انجام شد» فقط در روز موعدش فعال می‌شه.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2 pt-2">
-            {next && (
+            {next && isToday && (
               <Button
                 variant="outline"
                 size="sm"
                 className="rounded-xl gap-1.5 flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (yearly) {
+                    setConfirmDone(true); // قبل از ثبت، اطمینان می‌گیریم
+                    return;
+                  }
                   onDone(isoOf(next.date));
                 }}
               >
@@ -408,6 +454,32 @@ function ReminderItem({
           </Button>
         </div>
       )}
+
+      {/* تأیید «انجام شد» برای یادآورهای سالانه (تولد، سالگرد و مانند آن) */}
+      <Dialog open={confirmDone} onOpenChange={setConfirmDone}>
+        <DialogContent className="sm:max-w-sm rounded-3xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">«انجام شد» ثبت بشه؟</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            «{reminder.title}» برای امسال انجام‌شده ثبت می‌شه و تا سال بعد دیگه یادآوری نمی‌گیری. مطمئنی؟
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setConfirmDone(false)} className="rounded-2xl">
+              انصراف
+            </Button>
+            <Button
+              onClick={() => {
+                setConfirmDone(false);
+                if (next) onDone(isoOf(next.date));
+              }}
+              className="rounded-2xl"
+            >
+              بله، انجام شد
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

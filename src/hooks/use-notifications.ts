@@ -235,7 +235,7 @@ export function useNotifications(reminders: Reminder[], options: UseNotification
       // Welcome notification (best effort)
       setTimeout(() => {
         showNotification({
-          title: 'تقویم شمسی',
+          title: 'Persian Calendar',
           body: 'نوتیفیکیشن با موفقیت فعال شد',
           tag: 'welcome',
         }).catch(() => { /* ignore */ });
@@ -349,7 +349,7 @@ export function useNotifications(reminders: Reminder[], options: UseNotification
   const sendTestNotification = useCallback(() => {
     if (permission !== 'granted') return;
     showNotification({
-      title: 'تقویم شمسی — آزمایش',
+      title: 'Persian Calendar — آزمایش',
       body: 'این یک نوتیفیکیشن آزمایشی است',
       tag: 'test',
     }).catch((e) => {

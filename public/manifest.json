@@ -1,6 +1,6 @@
 {
-  "name": "تقویم شمسی میلادی",
-  "short_name": "تقویم",
+  "name": "Persian Calendar",
+  "short_name": "Persian Calendar",
   "description": "تقویم شمسی و میلادی با یادآور مناسبت ها و تولدها، محاسبه سن و تبدیل تاریخ",
   "lang": "fa",
   "dir": "rtl",
@@ -8,8 +8,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#5856D6",
-  "background_color": "#ffffff",
+  "theme_color": "#2B62EF",
+  "background_color": "#2B62EF",
   "categories": ["productivity", "utilities", "lifestyle"],
   "icons": [
     {

@@ -205,7 +205,7 @@ export default function Home() {
         title: 'نوتیف‌ها بلاک شدن',
         description:
           nh.channel === 'capacitor'
-            ? 'از تنظیمات گوشی: Settings > Apps > تقویم شمسی > Notifications اجازه بده'
+            ? 'از تنظیمات گوشی: Settings > Apps > Persian Calendar > Notifications اجازه بده'
             : 'از تنظیمات مرورگر اجازه نوتیفیکیشن بده و صفحه رو رفرش کن',
       });
       return;
@@ -250,7 +250,7 @@ export default function Home() {
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold leading-tight truncate">تقویم شمسی</h1>
+              <h1 className="text-base font-bold leading-tight truncate" dir="ltr">Persian Calendar</h1>
               <p className="text-[10px] text-muted-foreground leading-tight truncate">یادآور، یادداشت و مناسبت‌ها</p>
             </div>
           </div>
@@ -298,8 +298,8 @@ export default function Home() {
 
       {/* Scrollable content between the fixed header and the bottom navigation */}
       <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar app-scroll">
-        {/* pb-32: room for the floating navigation so the last item is never hidden behind it */}
-        <div className="max-w-lg mx-auto w-full px-4 pt-5 pb-32">
+        {/* pb-24: room for the floating navigation so the last item is never hidden behind it */}
+        <div className="max-w-lg mx-auto w-full px-4 pt-5 pb-24">
           <div className="relative min-h-[50vh]">
             {(
               [
@@ -372,13 +372,14 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Floating bottom navigation: a pill that hovers above the content, not attached to the screen edge */}
+      {/* Floating bottom navigation: a compact icon-only pill with a solid (non-transparent)
+          background matching the app's light theme. The active tab is highlighted with the app's blue. */}
       <nav
         aria-label="ناوبری اصلی"
         className="pointer-events-none absolute inset-x-0 bottom-0 z-50 px-4"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)' }}
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
       >
-        <div className="pointer-events-auto mx-auto flex max-w-sm items-center justify-between rounded-full bg-black p-2 shadow-[0_12px_32px_rgba(0,0,0,0.28)]">
+        <div className="pointer-events-auto mx-auto flex w-max items-center gap-2 rounded-full bg-card border border-border/60 p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
           {tabs.map((t) => {
             const active = tab === t.id;
             return (
@@ -386,33 +387,20 @@ export default function Home() {
                 key={t.id}
                 onClick={() => switchTab(t.id)}
                 aria-label={t.label}
+                title={t.label}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex h-11 items-center justify-center rounded-full transition-colors duration-200 active:scale-95 ${
-                  active ? 'gap-2 px-4 text-white' : 'w-11 text-white/75'
+                className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-200 active:scale-95 ${
+                  active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {active && (
                   <motion.span
                     layoutId="bottom-nav-pill"
-                    className="absolute inset-0 rounded-full bg-white/15"
+                    className="absolute inset-0 rounded-full bg-primary/10"
                     transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 38 }}
                   />
                 )}
                 <span className="relative z-10 flex items-center justify-center">{t.icon}</span>
-                <AnimatePresence initial={false}>
-                  {active && (
-                    <motion.span
-                      key="label"
-                      initial={reduceMotion ? false : { width: 0, opacity: 0 }}
-                      animate={{ width: 'auto', opacity: 1 }}
-                      exit={reduceMotion ? { opacity: 0 } : { width: 0, opacity: 0 }}
-                      transition={{ duration: reduceMotion ? 0 : 0.22, ease: ENTER_EASE }}
-                      className="relative z-10 overflow-hidden whitespace-nowrap text-[13px] font-semibold"
-                    >
-                      {t.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
               </button>
             );
           })}
