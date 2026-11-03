@@ -1,8 +1,8 @@
 // Run after `npx cap add android` (and again after every `npx cap sync` if you like; it is idempotent).
 // The android/ folder is generated in CI and not committed, so project-specific native tweaks live here:
-//   1. copies android-resources/ (notification icon, splash drawable, splash colors) into the project
-//   2. removes the default splash.png images so our splash.xml is used
-//   3. patches styles.xml: light (never dark/black) window background + branded launch splash
+//   1. copies android-resources/ (notification icons and calendar day images) into the project
+//   2. removes default splash.png images to avoid duplicate resources
+//   3. patches styles.xml to keep the launch background light and unbranded
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -47,13 +47,12 @@ if (existsSync(stylesPath)) {
   if (!s.includes('windowSplashScreenBackground')) {
     s = s.replace(
       /(<style name="AppTheme\.NoActionBarLaunch"[^>]*>)/,
-      '$1\n        <item name="windowSplashScreenBackground">@color/splash_background</item>' +
-        '\n        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>'
+      '$1\n        <item name="windowSplashScreenBackground">@color/splash_background</item>'
     );
   }
   if (s !== before) {
     writeFileSync(stylesPath, s);
-    console.log('Patched styles.xml (light window background + branded splash)');
+    console.log('Patched styles.xml (light, unbranded launch background)');
   } else {
     console.log('styles.xml already patched');
   }

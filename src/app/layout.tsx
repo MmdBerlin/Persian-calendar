@@ -3,7 +3,6 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { CapacitorInit } from "@/components/capacitor-init";
-import { AppSplash, SPLASH_CSS } from "@/components/app-splash";
 
 // IRANYekanX variable font (one file covers weights 100–1000), bundled locally.
 const iranYekanX = localFont({
@@ -67,13 +66,10 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        {/* Inline, so it applies before any JS/CSS bundle loads: no black/blank screen at start-up. */}
-        <style dangerouslySetInnerHTML={{ __html: SPLASH_CSS }} />
       </head>
       <body
         className={`${iranYekanX.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <AppSplash />
         <CapacitorInit />
         {children}
         <Toaster />

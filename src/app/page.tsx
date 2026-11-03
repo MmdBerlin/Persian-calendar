@@ -168,6 +168,33 @@ export default function Home() {
     setTab(id);
   }, []);
 
+  // Keep current navigation values available to the single system-back listener.
+  const backNavRef = useRef({ dayDialogOpen, tab, settingsPage, switchTab });
+  backNavRef.current = { dayDialogOpen, tab, settingsPage, switchTab };
+
+  // Android/system Back: unwind the app's navigation stack before leaving the app.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const backState = { pcBackTrap: true };
+    window.history.pushState(backState, '');
+    const handlePopState = () => {
+      const current = backNavRef.current;
+      const hasPreviousInApp = current.dayDialogOpen || (current.tab === 'settings' && current.settingsPage !== 'root') || current.tab !== 'calendar';
+      if (current.dayDialogOpen) {
+        setDayDialogOpen(false);
+      } else if (current.tab === 'settings' && current.settingsPage !== 'root') {
+        setSettingsPage('root');
+      } else if (current.tab !== 'calendar') {
+        current.switchTab('calendar');
+      }
+      // Keep a trap only while returning to an in-app destination. On the home screen
+      // let the next system Back follow the platform's normal exit behavior.
+      if (hasPreviousInApp) window.history.pushState(backState, '');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // ---- Bell (top-left): first tap asks for permission, after that each tap toggles on/off ----
   const suggestExactAlarm = useCallback(() => {
     // Android 12+: without the "Alarms & reminders" special access, reminders can fire minutes late
@@ -324,11 +351,10 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={openDayDialog}
-                      className="w-full h-12 rounded-2xl border-2 border-dashed border-primary/35 bg-primary/5 hover:bg-primary/10 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-primary text-sm font-semibold"
+                      className="w-full min-h-12 rounded-2xl border-0 bg-white hover:bg-slate-50 active:scale-[0.99] transition-all flex items-center justify-between px-4 text-right text-sm font-semibold text-foreground shadow-sm"
                     >
-                      <Plus className="h-4 w-4" />
-                      یادآور برای {toPersianDigits(selectedDate.jd)}{' '}
-                      {JALALI_MONTHS[selectedDate.jm - 1]} اضافه کن
+                      <span>یادآور برای {toPersianDigits(selectedDate.jd)}{' '}{JALALI_MONTHS[selectedDate.jm - 1]} اضافه کن</span>
+                      <span className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0"><Plus className="h-4 w-4" /></span>
                     </button>
                   </div>,
                 ],

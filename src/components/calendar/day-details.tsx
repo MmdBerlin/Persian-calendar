@@ -67,7 +67,7 @@ export function DayDetails({ date, reminders, settings, onDone, onUndo }: DayDet
   const [confirmDone, setConfirmDone] = useState<Reminder | null>(null);
 
   return (
-    <Card className="glass-card p-5 border-0 rounded-3xl">
+    <Card className="glass-card p-4 border-0 rounded-3xl">
       <div className="flex items-center gap-3 mb-4">
         <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
           <Calendar className="h-5 w-5 text-primary" />
@@ -79,7 +79,7 @@ export function DayDetails({ date, reminders, settings, onDone, onUndo }: DayDet
       </div>
 
       {/* Date display */}
-      <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 p-4 mb-4">
+      <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 p-3 mb-3">
         <div className="text-xs text-muted-foreground mb-1">{WEEKDAYS_FA[weekday]}</div>
         <div className="text-2xl font-bold mb-1">
           {toPersianDigits(date.jd)} {JALALI_MONTHS[date.jm - 1]} {toPersianDigits(date.jy)}
@@ -91,7 +91,7 @@ export function DayDetails({ date, reminders, settings, onDone, onUndo }: DayDet
 
       {/* Events */}
       {events.length > 0 && (
-        <div className="space-y-2 mb-4">
+        <div className="space-y-2 mb-3">
           <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
             <Info className="h-3 w-3" />
             مناسبت ها
@@ -99,7 +99,7 @@ export function DayDetails({ date, reminders, settings, onDone, onUndo }: DayDet
           {events.map((e) => {
             const style = CATEGORY_STYLES[e.category];
             return (
-              <div key={e.id} className={`rounded-lg bg-background/60 border border-s-4 ${style.accent} p-3`}>
+              <div key={e.id} className={`rounded-lg bg-background/60 border border-s-4 ${style.accent} p-2.5`}>
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="font-semibold text-sm">{e.title}</span>
                   <Badge variant="outline" className={`text-[10px] px-2 py-0 whitespace-nowrap ${style.badge}`}>

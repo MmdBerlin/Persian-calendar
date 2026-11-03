@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from '@/components/ui/drawer';
-import { CalendarDays, X } from 'lucide-react';
+import { CalendarDays, X, Plus, Minus } from 'lucide-react';
 import {
   JALALI_MONTHS,
   GREGORIAN_MONTHS,
@@ -88,22 +88,27 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   const today = todayJalali();
   const todayG = jalaliToGregorian(today.jy, today.jm, today.jd);
   const startDate = defaultDate ?? today;
+  const birthLikeInitial = (editingReminder?.type || 'birthday') === 'birthday' || editingReminder?.type === 'anniversary';
+  // Existing Gregorian reminders are converted once when opened for editing; all new/edit UI is Jalali.
+  const sourceYear = editingReminder?.year ?? (editingReminder?.calendar === 'gregorian' ? todayG.gy : today.jy);
+  const editDateParts = editingReminder
+    ? partsOf(buildDate(editingReminder.calendar || 'jalali', sourceYear, editingReminder.month, editingReminder.day), 'jalali')
+    : startDate;
 
   const [title, setTitle] = useState(editingReminder?.title || '');
   const [description, setDescription] = useState(editingReminder?.description || '');
   const [type, setType] = useState<ReminderType>(editingReminder?.type || 'birthday');
-  const [calendar, setCalendar] = useState<'jalali' | 'gregorian'>(editingReminder?.calendar || 'jalali');
-  const birthLikeInitial = (editingReminder?.type || 'birthday') === 'birthday' || editingReminder?.type === 'anniversary';
+  const calendar: 'jalali' = 'jalali';
   // Birth year (birthday) / first year (anniversary): optional, used for age / number of years
-  const [year, setYear] = useState<string>(editingReminder && birthLikeInitial && editingReminder.year ? String(editingReminder.year) : '');
+  const [year, setYear] = useState<string>(editingReminder && birthLikeInitial && editingReminder.year ? String(editDateParts.y) : '');
   // Year of the (first) date for events, tasks and notes
   const [startYear, setStartYear] = useState<string>(
     editingReminder && !birthLikeInitial
-      ? editingReminder.year ? String(editingReminder.year) : ''
+      ? editingReminder.year ? String(editDateParts.y) : ''
       : String(startDate.jy)
   );
-  const [month, setMonth] = useState<string>(String(editingReminder?.month ?? startDate.jm));
-  const [day, setDay] = useState<string>(String(editingReminder?.day ?? startDate.jd));
+  const [month, setMonth] = useState<string>(String(editDateParts.m));
+  const [day, setDay] = useState<string>(String(editDateParts.d));
   const [repeat, setRepeat] = useState<RepeatKind>(
     editingReminder ? repeatOf(editingReminder) : 'yearly'
   );
@@ -122,6 +127,30 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   const [stepDir, setStepDir] = useState<1 | -1>(1);
   const reduceMotion = useReducedMotion() ?? false;
 
+  // Reset a new-reminder form after every close, whether it was saved or abandoned.
+  const wasOpen = useRef(open);
+  useEffect(() => {
+    if (wasOpen.current && !open && !editingReminder) {
+      setTitle('');
+      setDescription('');
+      setType('birthday');
+      setYear('');
+      setStartYear(String((defaultDate ?? todayJalali()).jy));
+      setMonth(String((defaultDate ?? todayJalali()).jm));
+      setDay(String((defaultDate ?? todayJalali()).jd));
+      setRepeat('yearly');
+      setRepeatEvery('1');
+      setOffsets([0]);
+      setCustomOffset('');
+      setNotifyTime('09:00');
+      setStep(0);
+      repeatTouched.current = false;
+      offsetsTouched.current = false;
+    }
+    wasOpen.current = open;
+  }, [open, editingReminder, defaultDate]);
+
+
   const goToStep = (s: number) => {
     setStepDir(s > step ? 1 : -1);
     setStep(s);
@@ -131,6 +160,22 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
     if (step === 0) onOpenChange(false);
     else goToStep(step - 1);
   };
+
+  // Catch the physical Android back button while this multi-step drawer is open.
+  const dialogBackRef = useRef(goBack);
+  dialogBackRef.current = goBack;
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return;
+    const state = { reminderDialogBack: true };
+    window.history.pushState(state, '');
+    const handleBack = (event: PopStateEvent) => {
+      event.stopImmediatePropagation();
+      dialogBackRef.current();
+      window.history.pushState(state, '');
+    };
+    window.addEventListener('popstate', handleBack);
+    return () => window.removeEventListener('popstate', handleBack);
+  }, [open]);
 
   const hints = REMINDER_TYPE_HINTS[type];
   const birthLike = type === 'birthday' || type === 'anniversary';
@@ -157,24 +202,6 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   const chooseRepeat = (k: RepeatKind) => {
     repeatTouched.current = true;
     setRepeat(k);
-  };
-
-  // Switching calendar converts the date instead of re-reading the same numbers in the other calendar
-  const changeCalendar = (next: 'jalali' | 'gregorian') => {
-    if (next === calendar) return;
-    const m = parseInt(month, 10) || 1;
-    const d = parseInt(day, 10) || 1;
-    const convert = (yStr: string, fallbackYear: number) => {
-      const y = yStr ? parseInt(yStr, 10) : fallbackYear;
-      const parts = partsOf(buildDate(calendar, y, m, d), next);
-      return parts;
-    };
-    const ref = convert(birthLike ? year : startYear, calendar === 'jalali' ? today.jy : todayG.gy);
-    setMonth(String(ref.m));
-    setDay(String(ref.d));
-    if (birthLike && year) setYear(String(ref.y));
-    if (!birthLike && startYear) setStartYear(String(ref.y));
-    setCalendar(next);
   };
 
   const toggleOffset = (n: number) => {
@@ -274,7 +301,7 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent dir="rtl" className="mx-auto sm:max-w-md rounded-t-3xl">
+      <DrawerContent dir="rtl" className="mx-auto sm:max-w-md rounded-t-3xl h-[80dvh] max-h-[80dvh]">
         <DrawerHeader className="pb-1 text-right">
           <DrawerTitle className="text-lg text-right">
             {editingReminder ? 'ویرایش یادآور' : 'یادآور جدید'}
@@ -309,8 +336,7 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
         </DrawerHeader>
 
         <div
-          className="px-4 pb-2 overflow-y-auto no-scrollbar"
-          style={{ maxHeight: '56vh' }}
+          className="px-4 pb-2 overflow-y-auto no-scrollbar flex-1 min-h-0"
           data-vaul-no-drag
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -369,7 +395,6 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder={hints.titlePlaceholder}
                       className="rounded-xl"
-                      autoFocus
                     />
                     <p className="text-[11px] text-muted-foreground leading-relaxed">{hints.titleHelp}</p>
                   </div>
@@ -390,25 +415,6 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <Label>نوع تقویم</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(['jalali', 'gregorian'] as const).map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => changeCalendar(c)}
-                          className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                            calendar === c
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted/40 text-muted-foreground hover:bg-muted'
-                          }`}
-                        >
-                          {c === 'jalali' ? 'شمسی' : 'میلادی'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
                   {hints.yearLabel && (
                     <div className="space-y-2">
@@ -537,19 +543,14 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
                         );
                       })}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={customOffset}
-                        onChange={(e) => setCustomOffset(e.target.value.replace(/[^\d]/g, '').slice(0, 3))}
-                        onKeyDown={(e) => e.key === 'Enter' && addCustomOffset()}
-                        placeholder="تعداد روز دلخواه"
-                        className="rounded-xl h-9 text-center"
-                        dir="ltr"
-                        inputMode="numeric"
-                      />
-                      <Button type="button" variant="outline" size="sm" className="rounded-xl h-9" onClick={addCustomOffset}>
-                        افزودن
-                      </Button>
+                    <div className="flex items-center justify-between rounded-xl bg-muted/30 px-3 py-2">
+                      <span className="text-xs text-muted-foreground">تعداد روز دلخواه</span>
+                      <div className="flex items-center gap-3" dir="ltr">
+                        <button type="button" aria-label="کم کردن روز" onClick={() => setCustomOffset(String(Math.max(0, (parseInt(customOffset, 10) || 0) - 1)))} className="h-8 w-8 rounded-lg bg-background text-muted-foreground flex items-center justify-center"><Minus className="h-4 w-4" /></button>
+                        <span className="min-w-7 text-center text-sm font-semibold">{toPersianDigits(parseInt(customOffset, 10) || 0)}</span>
+                        <button type="button" aria-label="افزودن روز" onClick={() => setCustomOffset(String(Math.min(365, (parseInt(customOffset, 10) || 0) + 1)))} className="h-8 w-8 rounded-lg bg-background text-primary flex items-center justify-center"><Plus className="h-4 w-4" /></button>
+                        <Button type="button" size="sm" className="rounded-xl h-8" onClick={addCustomOffset}>اعمال</Button>
+                      </div>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
                       می‌تونی مثلا «۳ روز قبل» و «۱ روز قبل» و «همان روز» رو با هم انتخاب کنی. حداقل یکی لازمه.

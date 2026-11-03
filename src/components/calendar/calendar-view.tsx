@@ -44,13 +44,20 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
   const [viewMonth, setViewMonth] = useState(today.jm);
   const [useJalali, setUseJalali] = useState(true);
 
+  // Grid cells are represented as JalaliDate objects so event/reminder matching
+  // stays consistent, but Gregorian mode builds its rows from actual Gregorian dates.
   const grid = useMemo(() => {
-    if (useJalali) {
-      return generateJalaliMonthGrid(viewYear, viewMonth);
-    } else {
-      const j = gregorianToJalali(viewYear, viewMonth, 1);
-      return generateJalaliMonthGrid(j.jy, j.jm);
-    }
+    if (useJalali) return generateJalaliMonthGrid(viewYear, viewMonth);
+
+    const first = new Date(viewYear, viewMonth - 1, 1);
+    const leading = (first.getDay() + 1) % 7; // Persian week starts Saturday
+    const start = new Date(viewYear, viewMonth - 1, 1 - leading);
+    return Array.from({ length: 6 }, (_, week) =>
+      Array.from({ length: 7 }, (_, day) => {
+        const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + week * 7 + day);
+        return gregorianToJalali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+      })
+    );
   }, [viewYear, viewMonth, useJalali]);
 
   const headerInfo = useMemo(() => {
@@ -60,13 +67,12 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
         primary: `${JALALI_MONTHS[viewMonth - 1]} ${toPersianDigits(viewYear)}`,
         secondary: `${GREGORIAN_MONTHS[g.gm - 1]} ${g.gy}`,
       };
-    } else {
-      const j = gregorianToJalali(viewYear, viewMonth, 1);
-      return {
-        primary: `${GREGORIAN_MONTHS[viewMonth - 1]} ${viewYear}`,
-        secondary: `${JALALI_MONTHS[j.jm - 1]} ${toPersianDigits(j.jy)}`,
-      };
     }
+    const j = gregorianToJalali(viewYear, viewMonth, 1);
+    return {
+      primary: `${GREGORIAN_MONTHS[viewMonth - 1]} ${viewYear}`,
+      secondary: `${JALALI_MONTHS[j.jm - 1]} ${toPersianDigits(j.jy)}`,
+    };
   }, [viewYear, viewMonth, useJalali]);
 
   const goToPrevMonth = () => {
@@ -88,10 +94,14 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
   };
 
   const goToToday = () => {
-    setViewYear(today.jy);
-    setViewMonth(today.jm);
-    setUseJalali(true);
-    // «امروز» روز انتخاب‌شده رو هم برمی‌گردونه به امروز
+    if (useJalali) {
+      setViewYear(today.jy);
+      setViewMonth(today.jm);
+    } else {
+      const now = new Date();
+      setViewYear(now.getFullYear());
+      setViewMonth(now.getMonth() + 1);
+    }
     onSelectDate?.(today);
   };
 
@@ -112,13 +122,16 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
   const isSelected = (d: JalaliDate) =>
     !!selectedDate && d.jy === selectedDate.jy && d.jm === selectedDate.jm && d.jd === selectedDate.jd;
 
-  const isCurrentMonth = (d: JalaliDate) =>
-    d.jm === viewMonth && d.jy === viewYear;
+  const isCurrentMonth = (d: JalaliDate) => {
+    if (useJalali) return d.jm === viewMonth && d.jy === viewYear;
+    const g = jalaliToGregorian(d.jy, d.jm, d.jd);
+    return g.gm === viewMonth && g.gy === viewYear;
+  };
 
   return (
-    <Card className="glass-card p-5 border-0 rounded-3xl">
+    <Card className="glass-card p-3 border-0 rounded-3xl">
       {/* Header: arrows on both sides, month name centered */}
-      <div className="flex items-center justify-between gap-3 mb-1.5">
+      <div className="flex items-center justify-between gap-2 mb-1">
         <Button
           variant="outline"
           size="icon"
@@ -144,11 +157,22 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
       </div>
 
       {/* Quick actions */}
-      <div className="flex items-center justify-center gap-1 mb-4">
+      <div className="flex items-center justify-center gap-1 mb-3">
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setUseJalali(!useJalali)}
+          onClick={() => {
+            if (useJalali) {
+              const g = jalaliToGregorian(viewYear, viewMonth, 1);
+              setViewYear(g.gy);
+              setViewMonth(g.gm);
+            } else {
+              const j = gregorianToJalali(viewYear, viewMonth, 1);
+              setViewYear(j.jy);
+              setViewMonth(j.jm);
+            }
+            setUseJalali((value) => !value);
+          }}
           className="rounded-lg text-[11px] px-3 h-7 text-muted-foreground"
         >
           {useJalali ? 'میلادی' : 'شمسی'}
@@ -165,7 +189,7 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
       </div>
 
       {/* Weekday header */}
-      <div className="grid grid-cols-7 gap-1 pb-2 mb-2 border-b border-border/60">
+      <div className="grid grid-cols-7 gap-x-1 gap-y-0 pb-1.5 mb-1.5 border-b border-border/60">
         {WEEKDAYS_FA_ABBR.map((day, idx) => (
           <div
             key={day}
@@ -186,7 +210,7 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-          className="grid grid-cols-7 gap-x-1 gap-y-1.5"
+          className="grid grid-cols-7 gap-x-1 gap-y-0.5"
         >
           {grid.flat().map((d, idx) => {
             const { events, reminders: dayReminders, gregorianDate } = getDayData(d);
@@ -201,15 +225,14 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
                 key={idx}
                 onClick={() => onSelectDate?.(d)}
                 className={`
-                  relative aspect-square rounded-xl flex flex-col items-center justify-center gap-1
-                  transition-all duration-200 hover:bg-accent/60 active:scale-95
+                  relative aspect-square min-w-0 rounded-lg transition-all duration-200 hover:bg-accent/60 active:scale-95
                   ${!inMonth ? 'opacity-30' : ''}
                   ${today_ ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30' : ''}
                   ${selected_ && !today_ ? 'ring-2 ring-primary bg-primary/5 text-primary font-semibold' : ''}
                   ${hasHoliday && !today_ && !selected_ ? 'bg-rose-50 text-rose-600' : ''}
                   ${isFriday && !today_ && !selected_ && !hasHoliday ? 'text-rose-600' : ''}
                 `}
-                aria-label={`${toPersianDigits(d.jd)} ${JALALI_MONTHS[d.jm - 1]}`}
+                aria-label={useJalali ? `${toPersianDigits(d.jd)} ${JALALI_MONTHS[d.jm - 1]}` : `${gregorianDate.gd} ${GREGORIAN_MONTHS[gregorianDate.gm - 1]} ${gregorianDate.gy}`}
                 aria-current={today_ ? 'date' : undefined}
                 aria-pressed={selected_}
               >
@@ -221,11 +244,11 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
                     'text-muted-foreground/60'
                   }`}
                 >
-                  {gregorianDate.gd}
+                  {useJalali ? toPersianDigits(gregorianDate.gd) : toPersianDigits(d.jd)}
                 </span>
-                <span className="text-sm font-medium leading-none">{toPersianDigits(d.jd)}</span>
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm font-medium leading-none tabular-nums">{useJalali ? toPersianDigits(d.jd) : toPersianDigits(gregorianDate.gd)}</span>
                 {/* Event/reminder dots, centered under the number */}
-                <div className="flex items-center justify-center gap-[3px] h-1">
+                <div className="absolute bottom-1 left-0 right-0 flex items-center justify-center gap-[3px] h-1">
                   {CATEGORY_ORDER.filter((c) => events.some((e) => e.category === c)).map((c) => (
                     <span
                       key={c}
@@ -250,7 +273,7 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
       </AnimatePresence>
 
       {/* Legend */}
-      <div className="mt-5 pt-4 border-t flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
+      <div className="mt-3 pt-3 border-t flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
         {CATEGORY_ORDER.filter((c) =>
           c === 'shamsi' ? settings.showShamsiEvents : c === 'qamari' ? settings.showQamariEvents : settings.showGlobalEvents
         ).map((c) => (

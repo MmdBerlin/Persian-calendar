@@ -352,7 +352,7 @@ function AboutPage() {
             <ShieldCheck className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <h4 className="text-sm font-bold">حریم خصوصیت طلاسته 💚</h4>
+            <h4 className="text-sm font-bold">حریم خصوصی شما محترم است 💚</h4>
             <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
               تمام داده‌ها (یادآورها، یادداشت‌ها و تنظیمات) به صورت محلی روی گوشی خودت ذخیره می‌شن
               و هیچ اطلاعاتی به هیچ سروری ارسال نمی‌شه. اپ کاملاً آفلاین کار می‌کنه؛

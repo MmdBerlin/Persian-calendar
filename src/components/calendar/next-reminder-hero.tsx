@@ -65,10 +65,10 @@ export function NextReminderHero({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-3xl bg-gradient-to-l from-primary to-primary/85 text-primary-foreground p-4 shadow-lg shadow-primary/25"
+      className="rounded-3xl bg-gradient-to-l from-primary to-primary/85 text-primary-foreground p-3.5 shadow-lg shadow-primary/25"
     >
       <div className="flex items-center gap-3">
-        <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+        <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
           <ReminderTypeIcon type={r.type} className="h-6 w-6" />
         </div>
         <div className="flex-1 min-w-0 text-right">
