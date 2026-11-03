@@ -108,7 +108,7 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
       : String(startDate.jy)
   );
   const [month, setMonth] = useState<string>(String(editDateParts.m));
-  const [day, setDay] = useState<string>(String(editDateParts.d));
+  const [day, setDay] = useState<string>(String(editingReminder ? editDateParts.d : today.jd));
   const [repeat, setRepeat] = useState<RepeatKind>(
     editingReminder ? repeatOf(editingReminder) : 'yearly'
   );
@@ -125,6 +125,9 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   // ---- wizard state ----
   const [step, setStep] = useState(0);
   const [stepDir, setStepDir] = useState<1 | -1>(1);
+  // Vaul's drawer snap state is pinned to a single 80% viewport-height point.
+  // Keeping one snap point prevents the sheet from resizing between wizard steps.
+  const [drawerSnapPoint, setDrawerSnapPoint] = useState<number | string>(0.8);
   const reduceMotion = useReducedMotion() ?? false;
 
   // Reset a new-reminder form after every close, whether it was saved or abandoned.
@@ -137,7 +140,8 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
       setYear('');
       setStartYear(String((defaultDate ?? todayJalali()).jy));
       setMonth(String((defaultDate ?? todayJalali()).jm));
-      setDay(String((defaultDate ?? todayJalali()).jd));
+      // New reminders always start with today's day number, not a stale/selected day.
+      setDay(String(todayJalali().jd));
       setRepeat('yearly');
       setRepeatEvery('1');
       setOffsets([0]);
@@ -300,8 +304,18 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   const slide = reduceMotion ? 0 : 20;
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent dir="rtl" className="mx-auto sm:max-w-md rounded-t-3xl h-[80dvh] max-h-[80dvh]">
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      snapPoints={[0.8]}
+      activeSnapPoint={drawerSnapPoint}
+      setActiveSnapPoint={setDrawerSnapPoint}
+    >
+      <DrawerContent
+        dir="rtl"
+        style={{ height: '80dvh', minHeight: '80dvh', maxHeight: '80dvh', flex: 'none' }}
+        className="mx-auto sm:max-w-md rounded-t-3xl !h-[80dvh] !min-h-[80dvh] !max-h-[80dvh]"
+      >
         <DrawerHeader className="pb-1 text-right">
           <DrawerTitle className="text-lg text-right">
             {editingReminder ? 'ویرایش یادآور' : 'یادآور جدید'}
