@@ -13,7 +13,6 @@ import {
 } from '@/lib/jalali';
 import { nextOccurrence, startOfDay } from '@/lib/reminder-schedule';
 import { formatNotifyTime } from '@/lib/notification-text';
-import { REMINDER_TYPE_LABELS } from '@/lib/reminder-types';
 import { ReminderTypeIcon } from '@/components/calendar/reminder-type-icon';
 
 /**
@@ -78,16 +77,13 @@ export function NextReminderHero({
             نزدیک‌ترین یادآورت
           </div>
           <div className="text-base font-bold truncate mt-0.5">{r.title}</div>
-          <div className="text-[11px] text-primary-foreground/85 mt-0.5 flex items-center gap-1 flex-wrap">
-            <span>{REMINDER_TYPE_LABELS[r.type]}</span>
-            <span className="opacity-50">•</span>
-            <CalendarDays className="h-3 w-3" />
-            <span>
+          <div className="text-[10px] text-primary-foreground/85 mt-0.5 flex items-center gap-1 min-w-0 whitespace-nowrap">
+            <CalendarDays className="h-2.5 w-2.5 shrink-0" />
+            <span className="truncate">
               {WEEKDAYS_FA[jalaliWeekday(j.jy, j.jm, j.jd)]} {toPersianDigits(j.jd)} {JALALI_MONTHS[j.jm - 1]}
+              {' • '}
+              ساعت {toPersianDigits(time)}
             </span>
-            <span className="opacity-50">•</span>
-            <Clock3 className="h-3 w-3" />
-            <span>ساعت {toPersianDigits(time)}</span>
           </div>
         </div>
         <div

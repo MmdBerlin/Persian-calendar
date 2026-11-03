@@ -116,40 +116,60 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
     d.jm === viewMonth && d.jy === viewYear;
 
   return (
-    <Card className="glass-card p-4 border-0 rounded-3xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3.5 flex-wrap gap-2.5">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{headerInfo.primary}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{headerInfo.secondary}</p>
+    <Card className="glass-card p-5 border-0 rounded-3xl">
+      {/* Header: arrows on both sides, month name centered */}
+      <div className="flex items-center justify-between gap-3 mb-1.5">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={goToPrevMonth}
+          className="h-9 w-9 shrink-0 rounded-xl border-border bg-transparent shadow-none"
+          aria-label="ماه قبل"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <div className="flex-1 min-w-0 text-center">
+          <h2 className="text-lg font-bold tracking-tight leading-tight">{headerInfo.primary}</h2>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{headerInfo.secondary}</p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setUseJalali(!useJalali)}
-            className="rounded-xl text-xs px-3 h-9"
-          >
-            {useJalali ? 'میلادی' : 'شمسی'}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={goToToday} className="rounded-xl text-xs px-3 h-9">
-            امروز
-          </Button>
-          <Button variant="ghost" size="icon" onClick={goToPrevMonth} className="rounded-xl h-9 w-9">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={goToNextMonth} className="rounded-xl h-9 w-9">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={goToNextMonth}
+          className="h-9 w-9 shrink-0 rounded-xl border-border bg-transparent shadow-none"
+          aria-label="ماه بعد"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex items-center justify-center gap-1 mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setUseJalali(!useJalali)}
+          className="rounded-lg text-[11px] px-3 h-7 text-muted-foreground"
+        >
+          {useJalali ? 'میلادی' : 'شمسی'}
+        </Button>
+        <span className="h-3 w-px bg-border" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={goToToday}
+          className="rounded-lg text-[11px] px-3 h-7 text-muted-foreground"
+        >
+          امروز
+        </Button>
       </div>
 
       {/* Weekday header */}
-      <div className="grid grid-cols-7 gap-1 mb-1">
+      <div className="grid grid-cols-7 gap-1 pb-2 mb-2 border-b border-border/60">
         {WEEKDAYS_FA_ABBR.map((day, idx) => (
           <div
             key={day}
-            className={`text-center text-[11px] font-medium py-1.5 ${
+            className={`text-center text-[11px] font-normal py-1 ${
               idx === 6 ? 'text-rose-500' : 'text-muted-foreground'
             }`}
           >
@@ -166,7 +186,7 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-          className="grid grid-cols-7 gap-1"
+          className="grid grid-cols-7 gap-x-1 gap-y-1.5"
         >
           {grid.flat().map((d, idx) => {
             const { events, reminders: dayReminders, gregorianDate } = getDayData(d);
@@ -181,8 +201,8 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
                 key={idx}
                 onClick={() => onSelectDate?.(d)}
                 className={`
-                  relative aspect-square rounded-xl p-1.5 text-right transition-all duration-200
-                  hover:bg-accent/60 active:scale-95
+                  relative aspect-square rounded-xl flex flex-col items-center justify-center gap-1
+                  transition-all duration-200 hover:bg-accent/60 active:scale-95
                   ${!inMonth ? 'opacity-30' : ''}
                   ${today_ ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30' : ''}
                   ${selected_ && !today_ ? 'ring-2 ring-primary bg-primary/5 text-primary font-semibold' : ''}
@@ -193,38 +213,35 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
                 aria-current={today_ ? 'date' : undefined}
                 aria-pressed={selected_}
               >
-                <div className="flex flex-col h-full">
-                  <div className="flex items-start justify-between">
-                    <span className="text-[13px] font-semibold">
-                      {toPersianDigits(d.jd)}
-                    </span>
-                    <span className={`text-[9px] leading-none ${
-                      today_ ? 'text-primary-foreground/70' :
-                      selected_ ? 'text-primary/70' :
-                      'text-muted-foreground/60'
-                    }`}>
-                      {gregorianDate.gd}
-                    </span>
-                  </div>
-                  {/* Event/reminder indicators */}
-                  <div className="flex flex-wrap gap-0.5 mt-auto">
-                    {CATEGORY_ORDER.filter((c) => events.some((e) => e.category === c)).map((c) => (
-                      <span
-                        key={c}
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          today_ ? 'bg-primary-foreground' : CATEGORY_STYLES[c].dot
-                        }`}
-                      />
-                    ))}
-                    {dayReminders.slice(0, 2).map((r, i) => (
-                      <span
-                        key={`r${i}`}
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          today_ ? 'bg-primary-foreground ring-1 ring-primary-foreground/60' : REMINDER_DOT_CLASS
-                        }`}
-                      />
-                    ))}
-                  </div>
+                {/* Gregorian day: tiny, faint, in the corner */}
+                <span
+                  className={`absolute top-1 left-1.5 text-[8px] leading-none font-normal ${
+                    today_ ? 'text-primary-foreground/70' :
+                    selected_ ? 'text-primary/70' :
+                    'text-muted-foreground/60'
+                  }`}
+                >
+                  {gregorianDate.gd}
+                </span>
+                <span className="text-sm font-medium leading-none">{toPersianDigits(d.jd)}</span>
+                {/* Event/reminder dots, centered under the number */}
+                <div className="flex items-center justify-center gap-[3px] h-1">
+                  {CATEGORY_ORDER.filter((c) => events.some((e) => e.category === c)).map((c) => (
+                    <span
+                      key={c}
+                      className={`h-1 w-1 rounded-full ${
+                        today_ ? 'bg-primary-foreground' : CATEGORY_STYLES[c].dot
+                      }`}
+                    />
+                  ))}
+                  {dayReminders.slice(0, 2).map((r, i) => (
+                    <span
+                      key={`r${i}`}
+                      className={`h-1 w-1 rounded-full ${
+                        today_ ? 'bg-primary-foreground ring-1 ring-primary-foreground/60' : REMINDER_DOT_CLASS
+                      }`}
+                    />
+                  ))}
                 </div>
               </button>
             );
@@ -233,7 +250,7 @@ export function CalendarView({ reminders, selectedDate, onSelectDate, settings }
       </AnimatePresence>
 
       {/* Legend */}
-      <div className="mt-3.5 pt-3 border-t flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
+      <div className="mt-5 pt-4 border-t flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
         {CATEGORY_ORDER.filter((c) =>
           c === 'shamsi' ? settings.showShamsiEvents : c === 'qamari' ? settings.showQamariEvents : settings.showGlobalEvents
         ).map((c) => (

@@ -20,7 +20,7 @@ import {
   Trash2,
   Bell,
   CheckCircle2,
-  CheckSquare,
+  SquareCheck,
 } from 'lucide-react';
 import {
   JALALI_MONTHS,
@@ -52,12 +52,11 @@ interface RemindersManagerProps {
 }
 
 export function RemindersManager({ remindersHook }: RemindersManagerProps) {
-  const { reminders, addReminder, updateReminder, deleteReminder, deleteMultiple, clearAll, completeOccurrence } = remindersHook;
+  const { reminders, addReminder, updateReminder, deleteReminder, deleteMultiple, completeOccurrence } = remindersHook;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   const sortedReminders = useMemo(() => {
     const today = startOfDay(new Date());
@@ -132,12 +131,6 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
     exitSelectionMode();
   };
 
-  const handleClearAll = () => {
-    clearAll();
-    setConfirmClearAll(false);
-    exitSelectionMode();
-  };
-
   const editingReminder = editingId ? reminders.find((r) => r.id === editingId) : null;
 
   return (
@@ -149,10 +142,10 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
           </div>
           <div>
             <h3 className="text-lg font-bold">یادآورها</h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground whitespace-nowrap truncate">
               {selectionMode
                 ? `${toPersianDigits(selectedIds.size)} تا انتخاب شده`
-                : 'تولدها، جلسه‌ها و کارهایی که نباید فراموش کنی'}
+                : 'تولد، جلسه و کارهای مهم'}
             </p>
           </div>
         </div>
@@ -180,27 +173,15 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
         ) : (
           <div className="flex items-center gap-1.5">
             {reminders.length > 0 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectionMode(true)}
-                  className="rounded-xl text-xs h-9"
-                  aria-label="حذف چندتایی"
-                >
-                  <CheckSquare className="h-3.5 w-3.5 ml-1" />
-                  انتخاب
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setConfirmClearAll(true)}
-                  className="rounded-xl text-xs h-9 text-destructive hover:text-destructive"
-                  aria-label="حذف همه"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </>
+              <Button
+                variant="outline"
+                onClick={() => setSelectionMode(true)}
+                className="rounded-2xl h-9 w-9 p-0"
+                aria-label="انتخاب یادآورها"
+                title="انتخاب یادآورها"
+              >
+                <SquareCheck className="h-4.5 w-4.5" />
+              </Button>
             )}
             <Button
               onClick={openNewDialog}
@@ -273,26 +254,6 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
         editingReminder={editingReminder}
         onSave={handleSave}
       />
-
-      {/* Clear all confirmation */}
-      <Dialog open={confirmClearAll} onOpenChange={setConfirmClearAll}>
-        <DialogContent className="sm:max-w-sm rounded-3xl" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-lg">حذف همه یادآورها؟</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
-            آیا از حذف همه {toPersianDigits(reminders.length)} یادآور مطمئن هستید؟ این عمل قابل بازگشت نیست.
-          </p>
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setConfirmClearAll(false)} className="rounded-2xl">
-              انصراف
-            </Button>
-            <Button variant="destructive" onClick={handleClearAll} className="rounded-2xl">
-              بله، حذف کن
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }
@@ -349,16 +310,18 @@ function ReminderItem({
 
   return (
     <div
-      className={`relative rounded-2xl border transition-all ${
-        isToday && !isSelected
+      className={`relative overflow-hidden rounded-2xl border transition-all ${
+        isToday
           ? 'bg-rose-50 border-rose-200'
-          : isSoon && !isSelected
+          : isSoon
           ? 'bg-amber-50/50 border-amber-200'
-          : isSelected
-          ? 'bg-primary/5 border-primary ring-2 ring-primary'
           : 'bg-background/60 border-border'
       } ${expanded ? 'shadow-md' : 'hover:shadow-sm'}`}
     >
+      {/* وقتی انتخاب شده: یه لایه آبی با شفافیت ۵۰٪ روی کل کارت */}
+      {isSelected && (
+        <div className="pointer-events-none absolute inset-0 z-10 rounded-2xl bg-primary/50" aria-hidden="true" />
+      )}
       <button
         type="button"
         className="w-full flex items-center gap-3 p-3 text-right"
