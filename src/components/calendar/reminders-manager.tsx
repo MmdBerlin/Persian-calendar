@@ -59,18 +59,21 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const backStateRef = useRef({ dialogOpen, selectionMode });
-  backStateRef.current = { dialogOpen, selectionMode };
+  useEffect(() => {
+    backStateRef.current = { dialogOpen, selectionMode };
+  }, [dialogOpen, selectionMode]);
   useEffect(() => {
     const onAppBack = (event: Event) => {
       const custom = event as CustomEvent<{ handled: boolean }>;
-      if (custom.detail?.handled) return;
+      if (!custom.detail || custom.detail.handled) return;
       const current = backStateRef.current;
-      if (current.dialogOpen) {
+      // While the reminder form is open it handles Back itself (one wizard step back, or close on
+      // the first step). Handling it here too would close the whole form on the first press.
+      if (current.dialogOpen) return;
+      if (current.selectionMode) {
         custom.detail.handled = true;
-        handleClose();
-      } else if (current.selectionMode) {
-        custom.detail.handled = true;
-        exitSelectionMode();
+        setSelectionMode(false);
+        setSelectedIds(new Set());
       }
     };
     window.addEventListener('app-back', onAppBack);
@@ -150,7 +153,7 @@ export function RemindersManager({ remindersHook }: RemindersManagerProps) {
     exitSelectionMode();
   };
 
-  const editingReminder = editingId ? reminders.find((r) => r.id === editingId) : null;
+  const editingReminder = editingId ? (reminders.find((r) => r.id === editingId) ?? null) : null;
 
   return (
     <Card className="glass-card p-5 border-0 rounded-3xl">

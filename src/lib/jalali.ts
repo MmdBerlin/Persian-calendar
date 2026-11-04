@@ -348,8 +348,8 @@ export function calculateAgeFromGregorian(birthGy: number, birthGm: number, birt
  * across months (no jump between 5-week and 6-week months).
  * Starts from Saturday (Persian week start).
  */
-export function generateJalaliMonthGrid(jy: number, jm: number): (JalaliDate | null)[][] {
-  const weeks: (JalaliDate | null)[][] = [];
+export function generateJalaliMonthGrid(jy: number, jm: number): JalaliDate[][] {
+  const weeks: JalaliDate[][] = [];
   const firstDayWeekday = jalaliWeekday(jy, jm, 1); // 0=Saturday
   const monthLen = jalaliMonthLength(jy, jm);
 

@@ -214,7 +214,7 @@ export function NotesPanel() {
     exitSelectionMode();
   };
 
-  const editingNote = editingId ? notes.find((n) => n.id === editingId) : null;
+  const editingNote = editingId ? (notes.find((n) => n.id === editingId) ?? null) : null;
 
   return (
     <Card className="glass-card p-5 border-0 rounded-3xl">

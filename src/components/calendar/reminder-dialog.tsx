@@ -93,7 +93,7 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   const sourceYear = editingReminder?.year ?? (editingReminder?.calendar === 'gregorian' ? todayG.gy : today.jy);
   const editDateParts = editingReminder
     ? partsOf(buildDate(editingReminder.calendar || 'jalali', sourceYear, editingReminder.month, editingReminder.day), 'jalali')
-    : startDate;
+    : { y: startDate.jy, m: startDate.jm, d: startDate.jd };
 
   const [title, setTitle] = useState(editingReminder?.title || '');
   const [description, setDescription] = useState(editingReminder?.description || '');
@@ -108,7 +108,7 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
       : String(startDate.jy)
   );
   const [month, setMonth] = useState<string>(String(editDateParts.m));
-  const [day, setDay] = useState<string>(String(editingReminder ? editDateParts.d : today.jd));
+  const [day, setDay] = useState<string>(String(editingReminder ? editDateParts.d : startDate.jd));
   const [repeat, setRepeat] = useState<RepeatKind>(
     editingReminder ? repeatOf(editingReminder) : 'yearly'
   );
@@ -125,9 +125,6 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   // ---- wizard state ----
   const [step, setStep] = useState(0);
   const [stepDir, setStepDir] = useState<1 | -1>(1);
-  // Vaul's drawer snap state is pinned to a single 80% viewport-height point.
-  // Keeping one snap point prevents the sheet from resizing between wizard steps.
-  const [drawerSnapPoint, setDrawerSnapPoint] = useState<number | string>(0.8);
   const reduceMotion = useReducedMotion() ?? false;
 
   // Reset a new-reminder form after every close, whether it was saved or abandoned.
@@ -140,8 +137,8 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
       setYear('');
       setStartYear(String((defaultDate ?? todayJalali()).jy));
       setMonth(String((defaultDate ?? todayJalali()).jm));
-      // New reminders always start with today's day number, not a stale/selected day.
-      setDay(String(todayJalali().jd));
+      // New reminders start on the selected day (falls back to today).
+      setDay(String((defaultDate ?? todayJalali()).jd));
       setRepeat('yearly');
       setRepeatEvery('1');
       setOffsets([0]);
@@ -165,20 +162,22 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
     else goToStep(step - 1);
   };
 
-  // Catch the physical Android back button while this multi-step drawer is open.
+  // System Back: go one wizard step back first; on the first step close the sheet.
+  // The page-level back handler dispatches 'app-back' and stops once somebody sets `handled`.
   const dialogBackRef = useRef(goBack);
-  dialogBackRef.current = goBack;
+  useEffect(() => {
+    dialogBackRef.current = goBack;
+  });
   useEffect(() => {
     if (!open || typeof window === 'undefined') return;
-    const state = { reminderDialogBack: true };
-    window.history.pushState(state, '');
-    const handleBack = (event: PopStateEvent) => {
-      event.stopImmediatePropagation();
+    const onAppBack = (event: Event) => {
+      const custom = event as CustomEvent<{ handled: boolean }>;
+      if (custom.detail?.handled) return;
+      if (custom.detail) custom.detail.handled = true;
       dialogBackRef.current();
-      window.history.pushState(state, '');
     };
-    window.addEventListener('popstate', handleBack);
-    return () => window.removeEventListener('popstate', handleBack);
+    window.addEventListener('app-back', onAppBack);
+    return () => window.removeEventListener('app-back', onAppBack);
   }, [open]);
 
   const hints = REMINDER_TYPE_HINTS[type];
@@ -187,7 +186,7 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   const everyNum = Math.min(365, Math.max(1, parseInt(repeatEvery, 10) || 1));
   const subYearly = effectiveRepeat === 'daily' || effectiveRepeat === 'weekly' || effectiveRepeat === 'monthly';
   const showStartYear = !birthLike && effectiveRepeat !== 'yearly';
-  const sortedOffsets = [...offsets].sort((a, b) => b - a);
+  const sortedOffsets = useMemo(() => [...offsets].sort((a, b) => b - a), [offsets]);
 
   const changeType = (t: ReminderType) => {
     setType(t);
@@ -278,7 +277,10 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   }, [draft]);
 
   // Live preview of the notification text for the chosen type
-  const previewOffsets = sortedOffsets.length > 1 ? [sortedOffsets[0], sortedOffsets[sortedOffsets.length - 1]] : sortedOffsets;
+  const previewOffsets = useMemo(
+    () => (sortedOffsets.length > 1 ? [sortedOffsets[0], sortedOffsets[sortedOffsets.length - 1]] : sortedOffsets),
+    [sortedOffsets]
+  );
   const previews = useMemo(
     () =>
       previewOffsets.map((off) =>
@@ -288,8 +290,7 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
           year && birthLike ? 30 : null
         )
       ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [title, type, description, sortedOffsets.join(','), year, hints.sampleTitle, birthLike]
+    [title, type, description, previewOffsets, year, hints.sampleTitle, birthLike]
   );
 
   const handleSave = () => {
@@ -304,17 +305,14 @@ export function ReminderDialog({ open, onOpenChange, editingReminder, onSave, de
   const slide = reduceMotion ? 0 : 20;
 
   return (
-    <Drawer
-      open={open}
-      onOpenChange={onOpenChange}
-      snapPoints={[0.8]}
-      activeSnapPoint={drawerSnapPoint}
-      setActiveSnapPoint={setDrawerSnapPoint}
-    >
+    <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
+      {/* Always exactly 80% of the visible viewport, on every wizard step.
+          (No vaul snapPoints: they shift the sheet down by 20% on top of this fixed height,
+          which pushed the footer buttons off-screen.) */}
       <DrawerContent
         dir="rtl"
         style={{ height: '80dvh', minHeight: '80dvh', maxHeight: '80dvh', flex: 'none' }}
-        className="mx-auto sm:max-w-md rounded-t-3xl !h-[80dvh] !min-h-[80dvh] !max-h-[80dvh]"
+        className="mx-auto sm:max-w-md rounded-t-3xl !h-[80dvh] !min-h-[80dvh] !max-h-[80dvh] !mt-0"
       >
         <DrawerHeader className="pb-1 text-right">
           <DrawerTitle className="text-lg text-right">

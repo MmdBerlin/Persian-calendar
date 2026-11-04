@@ -29,6 +29,18 @@ import {
   AlarmClock,
 } from 'lucide-react';
 import { ToastAction } from '@/components/ui/toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 
 type Tab = 'calendar' | 'reminders' | 'notes' | 'settings';
 
@@ -112,7 +124,11 @@ export default function Home() {
   // "+" under the calendar: add a reminder for the selected day without leaving the calendar tab
   const [dayDialogOpen, setDayDialogOpen] = useState(false);
   const [dayDialogKey, setDayDialogKey] = useState(0);
-  const openDayDialog = useCallback(() => {
+  // Date the form starts on: the selected calendar day when opened from the button under the
+  // calendar, undefined (= today) when opened from anywhere else (e.g. the hero card).
+  const [dayDialogDate, setDayDialogDate] = useState<JalaliDate | undefined>(undefined);
+  const openDayDialog = useCallback((date?: JalaliDate) => {
+    setDayDialogDate(date);
     setDayDialogKey((k) => k + 1); // fresh form (and fresh default date) every time
     setDayDialogOpen(true);
   }, []);
@@ -168,39 +184,67 @@ export default function Home() {
     setTab(id);
   }, []);
 
-  // Keep current navigation values available to the single system-back listener.
-  const backNavRef = useRef({ dayDialogOpen, tab, settingsPage, switchTab });
-  backNavRef.current = { dayDialogOpen, tab, settingsPage, switchTab };
+  // Exit confirmation shown when Back is pressed on the home screen
+  const [exitOpen, setExitOpen] = useState(false);
 
-  // Android/system Back: unwind the app's navigation stack before leaving the app.
+  // Keep current navigation values available to the single system-back listener.
+  const backNavRef = useRef({ exitOpen, dayDialogOpen, tab, settingsPage, switchTab });
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const backState = { pcBackTrap: true };
-    window.history.pushState(backState, '');
-    const handlePopState = () => {
+    backNavRef.current = { exitOpen, dayDialogOpen, tab, settingsPage, switchTab };
+  }, [exitOpen, dayDialogOpen, tab, settingsPage, switchTab]);
+
+  // Android/system Back (native app only). Order of priority:
+  //  1) exit dialog open -> close it ("no")
+  //  2) child screens (reminder form step, selection mode, expanded card) via 'app-back'
+  //  3) any other open dialog/sheet -> close it
+  //  4) settings sub-page -> settings root, other tab -> calendar tab
+  //  5) already on the home screen -> ask "exit?"
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let remove: (() => void) | undefined;
+    let cancelled = false;
+
+    const handleBack = () => {
       const current = backNavRef.current;
-      // Let the active child screen consume Back first (open dialog, selection mode,
-      // expanded reminder). Only then unwind tabs/settings or leave from home.
-      const detail = { handled: false };
-      window.dispatchEvent(new CustomEvent('app-back', { detail }));
-      if (detail.handled) {
-        window.history.pushState(backState, '');
+      if (current.exitOpen) {
+        setExitOpen(false);
         return;
       }
-      const hasPreviousInApp = current.dayDialogOpen || (current.tab === 'settings' && current.settingsPage !== 'root') || current.tab !== 'calendar';
+      const detail = { handled: false };
+      window.dispatchEvent(new CustomEvent('app-back', { detail }));
+      if (detail.handled) return;
+
+      const openLayer = document.querySelector(
+        '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]'
+      );
+      if (openLayer) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        return;
+      }
       if (current.dayDialogOpen) {
         setDayDialogOpen(false);
       } else if (current.tab === 'settings' && current.settingsPage !== 'root') {
         setSettingsPage('root');
       } else if (current.tab !== 'calendar') {
         current.switchTab('calendar');
+      } else {
+        setExitOpen(true);
       }
-      // Keep a trap only while returning to an in-app destination. On the home screen
-      // let the next system Back follow the platform's normal exit behavior.
-      if (hasPreviousInApp) window.history.pushState(backState, '');
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+
+    CapacitorApp.addListener('backButton', handleBack)
+      .then((handle) => {
+        if (cancelled) handle.remove();
+        else remove = () => handle.remove();
+      })
+      .catch(() => {
+        /* plugin unavailable: fall back to the platform's default Back behavior */
+      });
+
+    return () => {
+      cancelled = true;
+      remove?.();
+    };
   }, []);
 
   // ---- Bell (top-left): first tap asks for permission, after that each tap toggles on/off ----
@@ -341,7 +385,7 @@ export default function Home() {
                 [
                   'calendar',
                   <div key="cal" className="space-y-5">
-                    <NextReminderHero reminders={remindersHook.reminders} onAdd={openDayDialog} />
+                    <NextReminderHero reminders={remindersHook.reminders} onAdd={() => openDayDialog()} />
                     <CalendarView
                       reminders={remindersHook.reminders}
                       selectedDate={selectedDate}
@@ -358,7 +402,7 @@ export default function Home() {
                     {/* Thin add-reminder CTA for the selected day */}
                     <button
                       type="button"
-                      onClick={openDayDialog}
+                      onClick={() => openDayDialog(selectedDate)}
                       className="w-full min-h-12 rounded-2xl border-0 bg-white hover:bg-slate-50 active:scale-[0.99] transition-all flex items-center justify-between px-4 text-right text-sm font-semibold text-foreground shadow-sm"
                     >
                       <span>یادآور برای {toPersianDigits(selectedDate.jd)}{' '}{JALALI_MONTHS[selectedDate.jm - 1]} اضافه کن</span>
@@ -396,7 +440,7 @@ export default function Home() {
             open={dayDialogOpen}
             onOpenChange={setDayDialogOpen}
             editingReminder={null}
-            defaultDate={selectedDate}
+            defaultDate={dayDialogDate}
             onSave={(data) => {
               remindersHook.addReminder(data);
               setDayDialogOpen(false);
@@ -405,6 +449,29 @@ export default function Home() {
           />
         </div>
       </main>
+
+      {/* Exit confirmation (system Back on the home screen) */}
+      <AlertDialog open={exitOpen} onOpenChange={setExitOpen}>
+        <AlertDialogContent dir="rtl" className="max-w-[20rem] rounded-3xl">
+          <AlertDialogHeader className="text-right sm:text-right">
+            <AlertDialogTitle>خروج از برنامه؟</AlertDialogTitle>
+            <AlertDialogDescription>می‌خوای از برنامه خارج بشی؟</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2 sm:justify-start">
+            <AlertDialogAction
+              className="flex-1 rounded-2xl"
+              onClick={() => {
+                CapacitorApp.exitApp().catch(() => {
+                  /* ignore */
+                });
+              }}
+            >
+              خروج
+            </AlertDialogAction>
+            <AlertDialogCancel className="flex-1 rounded-2xl mt-0">نه، دستم خورد</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Floating bottom navigation: a compact icon-only pill with a solid (non-transparent)
           background matching the app's light theme. The active tab is highlighted with the app's blue. */}

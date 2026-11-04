@@ -72,6 +72,7 @@ export const REMINDER_TYPE_DOT_COLORS: Record<ReminderType, string> = {
   event: 'bg-blue-500',
   task: 'bg-orange-500',
   appointment: 'bg-indigo-500',
+  meeting: 'bg-sky-500',
   medicine: 'bg-lime-500',
   installment: 'bg-red-500',
   bill: 'bg-yellow-500',
