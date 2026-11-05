@@ -52,32 +52,274 @@
   --card-foreground: oklch(0.18 0.01 240);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.01 240);
-  --primary: oklch(0.55 0.22 264);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.96 0.005 240);
-  --secondary-foreground: oklch(0.2 0.01 240);
+  --primary: #056afa;
+  --primary-foreground: #ffffff;
+  --secondary: #70bbf5;
+  --secondary-foreground: #0b2a4a;
   --muted: oklch(0.96 0.005 240);
   --muted-foreground: oklch(0.5 0.015 240);
-  --accent: oklch(0.95 0.02 264);
-  --accent-foreground: oklch(0.25 0.05 264);
+  --accent: #e0effc;
+  --accent-foreground: #0b3f82;
   --destructive: oklch(0.62 0.24 27);
   --border: oklch(0.91 0.005 240);
   --input: oklch(0.93 0.005 240);
-  --ring: oklch(0.55 0.22 264);
-  --chart-1: oklch(0.55 0.22 264);
+  --ring: #056afa;
+  --chart-1: #056afa;
   --chart-2: oklch(0.7 0.18 162);
   --chart-3: oklch(0.75 0.18 70);
   --chart-4: oklch(0.62 0.24 27);
   --chart-5: oklch(0.65 0.2 303);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.18 0.01 240);
-  --sidebar-primary: oklch(0.55 0.22 264);
-  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-primary: #056afa;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: oklch(0.96 0.005 240);
   --sidebar-accent-foreground: oklch(0.2 0.01 240);
   --sidebar-border: oklch(0.91 0.005 240);
-  --sidebar-ring: oklch(0.55 0.22 264);
+  --sidebar-ring: #056afa;
+  /* Surfaces used by .glass / .glass-card (overridden by themes) */
+  --glass-bg: rgba(255, 255, 255, 0.92);
+  --glass-card-bg: rgba(255, 255, 255, 0.9);
+  --glass-card-border: rgba(255, 255, 255, 0.6);
+  /* Gradient of the next-reminder card: main colour on the start side, --hero-end on the other side */
+  --hero-end: var(--secondary);
+  --hero-end-fg: var(--secondary-foreground);
 }
+
+.hero-gradient {
+  background-image: linear-gradient(to left, var(--primary) 45%, var(--hero-end));
+}
+
+/* ------------------------------------------------------------------------
+   Themes (settings > پوسته ها). The default theme is :root above.
+   Another theme only has to redefine the variables; every component already
+   uses them (bg-primary, bg-card, text-muted-foreground ...).
+   ------------------------------------------------------------------------ */
+
+/* Green theme: main colour #259d6d, base (page) colour #e6e6e6 */
+:root[data-theme="green"] {
+  --background: #e6e6e6;
+  --foreground: #17211c;
+  --card: #f4f4f4;
+  --card-foreground: #17211c;
+  --popover: #f4f4f4;
+  --popover-foreground: #17211c;
+  --primary: #259d6d;
+  --primary-foreground: #ffffff;
+  --secondary: #dadada;
+  --secondary-foreground: #17211c;
+  --muted: #dcdcdc;
+  --muted-foreground: #58635d;
+  --accent: #d2eadf;
+  --accent-foreground: #14543b;
+  --destructive: oklch(0.62 0.24 27);
+  --border: #d1d1d1;
+  --input: #c6c6c6;
+  --ring: #259d6d;
+  --chart-1: #259d6d;
+  --chart-2: oklch(0.7 0.18 162);
+  --chart-3: oklch(0.75 0.18 70);
+  --chart-4: oklch(0.62 0.24 27);
+  --chart-5: oklch(0.65 0.2 303);
+  --sidebar: #ececec;
+  --sidebar-foreground: #17211c;
+  --sidebar-primary: #259d6d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #dcdcdc;
+  --sidebar-accent-foreground: #17211c;
+  --sidebar-border: #d1d1d1;
+  --sidebar-ring: #259d6d;
+  --glass-bg: rgba(240, 240, 240, 0.94);
+  --glass-card-bg: #f4f4f4;
+  --glass-card-border: rgba(255, 255, 255, 0.55);
+  --hero-end: color-mix(in srgb, var(--primary) 85%, white);
+  --hero-end-fg: var(--primary-foreground);
+}
+
+/* Soft theme: white page, main colour #aec783, second colour #dfa482, black text.
+   The main colour is light, so text on it is black (--primary-foreground) and coloured
+   text/icons that used the main colour get a darker shade of it (--primary-ink) to stay readable on white. */
+:root[data-theme="sage"] {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #aec783;
+  --primary-foreground: #000000;
+  --primary-ink: #587527;
+  --secondary: #dfa482;
+  --secondary-foreground: #000000;
+  --muted: #f1f5ea;
+  --muted-foreground: #4b4b4b;
+  --accent: #dfa482;
+  --accent-foreground: #000000;
+  --destructive: oklch(0.62 0.24 27);
+  --border: #e3e9d8;
+  --input: #d3dbc4;
+  --ring: #aec783;
+  --chart-1: #aec783;
+  --chart-2: #dfa482;
+  --chart-3: oklch(0.75 0.18 70);
+  --chart-4: oklch(0.62 0.24 27);
+  --chart-5: oklch(0.65 0.2 303);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #aec783;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #f1f5ea;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #e3e9d8;
+  --sidebar-ring: #aec783;
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-card-bg: #ffffff;
+  --glass-card-border: rgba(88, 117, 39, 0.14);
+}
+:root[data-theme="sage"] .text-primary {
+  color: var(--primary-ink);
+}
+:root[data-theme="sage"] .text-primary\/70 {
+  color: color-mix(in oklab, var(--primary-ink) 70%, transparent);
+}
+
+/* Dark theme: background #1A2730, main colour #43AEDC, white / grey text.
+   The main colour is mid-light, so text on it is dark (--primary-foreground) for readability. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #1a2730;
+  --foreground: #ffffff;
+  --card: #223340;
+  --card-foreground: #ffffff;
+  --popover: #223340;
+  --popover-foreground: #ffffff;
+  --primary: #43aedc;
+  --primary-foreground: #0d1c26;
+  --secondary: #2b3f4e;
+  --secondary-foreground: #ffffff;
+  --muted: #243845;
+  --muted-foreground: #9fb1bd;
+  --accent: #2c4558;
+  --accent-foreground: #ffffff;
+  --destructive: oklch(0.7 0.19 22);
+  --border: #31465a;
+  --input: #3a5064;
+  --ring: #43aedc;
+  --chart-1: #43aedc;
+  --chart-2: oklch(0.75 0.15 162);
+  --chart-3: oklch(0.8 0.15 80);
+  --chart-4: oklch(0.7 0.19 22);
+  --chart-5: oklch(0.72 0.16 303);
+  --sidebar: #1a2730;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #43aedc;
+  --sidebar-primary-foreground: #0d1c26;
+  --sidebar-accent: #2c4558;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #31465a;
+  --sidebar-ring: #43aedc;
+  --glass-bg: rgba(26, 39, 48, 0.95);
+  --glass-card-bg: #223340;
+  --glass-card-border: rgba(255, 255, 255, 0.07);
+  --hero-end: color-mix(in srgb, var(--primary) 85%, white);
+  --hero-end-fg: var(--primary-foreground);
+}
+/* Notes keep their pastel colours, so their text stays dark */
+:root[data-theme="dark"] .note-card {
+  color: #111827;
+  --foreground: #111827;
+  --muted-foreground: #4b5563;
+}
+/* The pastel colour classes used around the app (bg-amber-100, text-emerald-700 ...) are made for a light
+   page; on the dark page they become soft tinted backgrounds with lighter text. */
+:root[data-theme="dark"] .bg-amber-100 { background-color: color-mix(in srgb, #f59e0b 20%, transparent); }
+:root[data-theme="dark"] .bg-amber-50\/50 { background-color: color-mix(in srgb, #f59e0b 14%, transparent); }
+:root[data-theme="dark"] .bg-amber-50\/80 { background-color: color-mix(in srgb, #f59e0b 14%, transparent); }
+:root[data-theme="dark"] .bg-blue-100 { background-color: color-mix(in srgb, #3b82f6 20%, transparent); }
+:root[data-theme="dark"] .bg-cyan-100 { background-color: color-mix(in srgb, #06b6d4 20%, transparent); }
+:root[data-theme="dark"] .bg-emerald-100 { background-color: color-mix(in srgb, #10b981 20%, transparent); }
+:root[data-theme="dark"] .bg-gray-100 { background-color: color-mix(in srgb, #6b7280 20%, transparent); }
+:root[data-theme="dark"] .bg-indigo-100 { background-color: color-mix(in srgb, #6366f1 20%, transparent); }
+:root[data-theme="dark"] .bg-lime-100 { background-color: color-mix(in srgb, #84cc16 20%, transparent); }
+:root[data-theme="dark"] .bg-orange-100 { background-color: color-mix(in srgb, #f97316 20%, transparent); }
+:root[data-theme="dark"] .bg-pink-100 { background-color: color-mix(in srgb, #ec4899 20%, transparent); }
+:root[data-theme="dark"] .bg-purple-100 { background-color: color-mix(in srgb, #a855f7 20%, transparent); }
+:root[data-theme="dark"] .bg-red-100 { background-color: color-mix(in srgb, #ef4444 20%, transparent); }
+:root[data-theme="dark"] .bg-rose-100 { background-color: color-mix(in srgb, #f43f5e 20%, transparent); }
+:root[data-theme="dark"] .bg-rose-50 { background-color: color-mix(in srgb, #f43f5e 14%, transparent); }
+:root[data-theme="dark"] .bg-sky-100 { background-color: color-mix(in srgb, #0ea5e9 20%, transparent); }
+:root[data-theme="dark"] .bg-slate-100 { background-color: color-mix(in srgb, #64748b 20%, transparent); }
+:root[data-theme="dark"] .bg-teal-100 { background-color: color-mix(in srgb, #14b8a6 20%, transparent); }
+:root[data-theme="dark"] .bg-violet-100 { background-color: color-mix(in srgb, #8b5cf6 20%, transparent); }
+:root[data-theme="dark"] .bg-yellow-100 { background-color: color-mix(in srgb, #eab308 20%, transparent); }
+:root[data-theme="dark"] .border-amber-200 { border-color: color-mix(in srgb, #f59e0b 40%, transparent); }
+:root[data-theme="dark"] .border-amber-300 { border-color: color-mix(in srgb, #f59e0b 40%, transparent); }
+:root[data-theme="dark"] .border-blue-200 { border-color: color-mix(in srgb, #3b82f6 40%, transparent); }
+:root[data-theme="dark"] .border-cyan-200 { border-color: color-mix(in srgb, #06b6d4 40%, transparent); }
+:root[data-theme="dark"] .border-emerald-200 { border-color: color-mix(in srgb, #10b981 40%, transparent); }
+:root[data-theme="dark"] .border-emerald-300 { border-color: color-mix(in srgb, #10b981 40%, transparent); }
+:root[data-theme="dark"] .border-gray-200 { border-color: color-mix(in srgb, #6b7280 40%, transparent); }
+:root[data-theme="dark"] .border-indigo-200 { border-color: color-mix(in srgb, #6366f1 40%, transparent); }
+:root[data-theme="dark"] .border-lime-200 { border-color: color-mix(in srgb, #84cc16 40%, transparent); }
+:root[data-theme="dark"] .border-orange-200 { border-color: color-mix(in srgb, #f97316 40%, transparent); }
+:root[data-theme="dark"] .border-pink-200 { border-color: color-mix(in srgb, #ec4899 40%, transparent); }
+:root[data-theme="dark"] .border-purple-200 { border-color: color-mix(in srgb, #a855f7 40%, transparent); }
+:root[data-theme="dark"] .border-red-200 { border-color: color-mix(in srgb, #ef4444 40%, transparent); }
+:root[data-theme="dark"] .border-rose-200 { border-color: color-mix(in srgb, #f43f5e 40%, transparent); }
+:root[data-theme="dark"] .border-rose-300 { border-color: color-mix(in srgb, #f43f5e 40%, transparent); }
+:root[data-theme="dark"] .border-sky-200 { border-color: color-mix(in srgb, #0ea5e9 40%, transparent); }
+:root[data-theme="dark"] .border-slate-200 { border-color: color-mix(in srgb, #64748b 40%, transparent); }
+:root[data-theme="dark"] .border-teal-200 { border-color: color-mix(in srgb, #14b8a6 40%, transparent); }
+:root[data-theme="dark"] .border-violet-300 { border-color: color-mix(in srgb, #8b5cf6 40%, transparent); }
+:root[data-theme="dark"] .border-yellow-200 { border-color: color-mix(in srgb, #eab308 40%, transparent); }
+:root[data-theme="dark"] .from-amber-50 { --tw-gradient-from: color-mix(in srgb, #f59e0b 14%, transparent); }
+:root[data-theme="dark"] .from-pink-50 { --tw-gradient-from: color-mix(in srgb, #ec4899 14%, transparent); }
+:root[data-theme="dark"] .from-pink-50\/80 { --tw-gradient-from: color-mix(in srgb, #ec4899 14%, transparent); }
+:root[data-theme="dark"] .text-amber-600 { color: #fcd34d; }
+:root[data-theme="dark"] .text-amber-700 { color: #fcd34d; }
+:root[data-theme="dark"] .text-amber-800 { color: #fcd34d; }
+:root[data-theme="dark"] .text-amber-800\/80 { color: #fcd34d; }
+:root[data-theme="dark"] .text-amber-900 { color: #fcd34d; }
+:root[data-theme="dark"] .text-blue-600 { color: #93c5fd; }
+:root[data-theme="dark"] .text-blue-700 { color: #93c5fd; }
+:root[data-theme="dark"] .text-cyan-600 { color: #67e8f9; }
+:root[data-theme="dark"] .text-cyan-700 { color: #67e8f9; }
+:root[data-theme="dark"] .text-emerald-600 { color: #6ee7b7; }
+:root[data-theme="dark"] .text-emerald-700 { color: #6ee7b7; }
+:root[data-theme="dark"] .text-emerald-800 { color: #6ee7b7; }
+:root[data-theme="dark"] .text-gray-600 { color: #d1d5db; }
+:root[data-theme="dark"] .text-gray-700 { color: #d1d5db; }
+:root[data-theme="dark"] .text-indigo-600 { color: #a5b4fc; }
+:root[data-theme="dark"] .text-indigo-700 { color: #a5b4fc; }
+:root[data-theme="dark"] .text-lime-600 { color: #bef264; }
+:root[data-theme="dark"] .text-lime-700 { color: #bef264; }
+:root[data-theme="dark"] .text-orange-600 { color: #fdba74; }
+:root[data-theme="dark"] .text-orange-700 { color: #fdba74; }
+:root[data-theme="dark"] .text-pink-600 { color: #f9a8d4; }
+:root[data-theme="dark"] .text-pink-700 { color: #f9a8d4; }
+:root[data-theme="dark"] .text-purple-600 { color: #d8b4fe; }
+:root[data-theme="dark"] .text-purple-700 { color: #d8b4fe; }
+:root[data-theme="dark"] .text-red-600 { color: #fca5a5; }
+:root[data-theme="dark"] .text-red-700 { color: #fca5a5; }
+:root[data-theme="dark"] .text-rose-600 { color: #fda4af; }
+:root[data-theme="dark"] .text-rose-800 { color: #fda4af; }
+:root[data-theme="dark"] .text-sky-600 { color: #7dd3fc; }
+:root[data-theme="dark"] .text-sky-700 { color: #7dd3fc; }
+:root[data-theme="dark"] .text-slate-600 { color: #cbd5e1; }
+:root[data-theme="dark"] .text-slate-700 { color: #cbd5e1; }
+:root[data-theme="dark"] .text-teal-600 { color: #5eead4; }
+:root[data-theme="dark"] .text-teal-700 { color: #5eead4; }
+:root[data-theme="dark"] .text-violet-600 { color: #c4b5fd; }
+:root[data-theme="dark"] .text-violet-700 { color: #c4b5fd; }
+:root[data-theme="dark"] .text-violet-800 { color: #c4b5fd; }
+:root[data-theme="dark"] .text-yellow-700 { color: #fde047; }
+:root[data-theme="dark"] .to-orange-50 { --tw-gradient-to: color-mix(in srgb, #f97316 14%, transparent); }
+:root[data-theme="dark"] .to-purple-50 { --tw-gradient-to: color-mix(in srgb, #a855f7 14%, transparent); }
+:root[data-theme="dark"] .to-purple-50\/80 { --tw-gradient-to: color-mix(in srgb, #a855f7 14%, transparent); }
+
+/* hover variants of the same pastel classes */
+:root[data-theme="dark"] .hover\:bg-emerald-50:hover { background-color: color-mix(in srgb, #10b981 14%, transparent); }
+:root[data-theme="dark"] .hover\:bg-rose-50:hover { background-color: color-mix(in srgb, #f43f5e 14%, transparent); }
 
 .dark {
   --background: oklch(0.145 0 0);
@@ -132,12 +374,12 @@
    almost white page (nothing to blur) but made scrolling, tab switches and the reminder sheet
    animation laggy inside the Android WebView. Slightly more opaque white keeps the same look. */
 .glass {
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--glass-bg);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-card-border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 30px rgba(0, 0, 0, 0.04);
 }
 
@@ -153,7 +395,7 @@
 
 /* Selection */
 ::selection {
-  background: oklch(0.55 0.22 264 / 0.2);
+  background: color-mix(in oklab, var(--primary) 20%, transparent);
 }
 
 /* Safe area for Android status bar / iOS notch.

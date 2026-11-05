@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { DEFAULT_EVENT_NOTIFY, type EventNotifyPrefs } from '@/lib/event-notify-prefs';
+import { DEFAULT_THEME, SETTINGS_STORAGE_KEY, isThemeId, type ThemeId } from '@/lib/themes';
 
 export interface AppSettings {
+  // Colour theme (settings > پوسته ها)
+  theme: ThemeId;
   // Event category visibility
   showShamsiEvents: boolean;
   showQamariEvents: boolean;
@@ -29,9 +32,10 @@ export interface AppSettings {
   } | null;
 }
 
-const STORAGE_KEY = 'persian-calendar-settings-v1';
+const STORAGE_KEY = SETTINGS_STORAGE_KEY;
 
 const DEFAULT_SETTINGS: AppSettings = {
+  theme: DEFAULT_THEME,
   showShamsiEvents: true,
   showQamariEvents: true,
   showGlobalEvents: true,
@@ -82,6 +86,7 @@ function getSettingsClient(): AppSettings {
         ...DEFAULT_SETTINGS,
         ...parsed,
         eventNotify: { ...DEFAULT_EVENT_NOTIFY, ...(parsed.eventNotify ?? {}) },
+        theme: isThemeId(parsed.theme) ? parsed.theme : DEFAULT_THEME,
       };
     } else {
       cachedSettings = DEFAULT_SETTINGS;

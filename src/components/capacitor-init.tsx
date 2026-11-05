@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { getTheme, readStoredThemeId } from '@/lib/themes';
 
 
 /**
@@ -40,16 +41,19 @@ export function CapacitorInit() {
     finishSplash();
 
     if (Capacitor.isNativePlatform()) {
+      // the status bar / background use the colour of the selected theme (default: app blue)
+      const startTheme = getTheme(readStoredThemeId());
+      const chrome = startTheme.chrome;
       (async () => {
         try {
-          await StatusBar.setStyle({ style: Style.Dark });
-          await StatusBar.setBackgroundColor({ color: '#2B62EF' });
+          await StatusBar.setStyle({ style: startTheme.lightChrome ? Style.Light : Style.Dark });
+          await StatusBar.setBackgroundColor({ color: chrome });
           await StatusBar.setOverlaysWebView({ overlay: false });
         } catch {
           // some calls are not supported on every Android version; never break the app
         }
       })();
-      document.documentElement.style.setProperty('background-color', '#2B62EF');
+      document.documentElement.style.setProperty('background-color', chrome);
     }
 
     return () => {

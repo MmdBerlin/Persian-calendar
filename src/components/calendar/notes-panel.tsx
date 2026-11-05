@@ -355,7 +355,7 @@ function NoteItem({
 }) {
   return (
     <div
-      className={`group relative p-3 rounded-2xl border transition-colors duration-200 hover:shadow-sm cursor-pointer ${
+      className={`note-card group relative p-3 rounded-2xl border transition-colors duration-200 hover:shadow-sm cursor-pointer ${
         isSelected ? 'ring-2 ring-primary border-primary' : ''
       }`}
       style={{

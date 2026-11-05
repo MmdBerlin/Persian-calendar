@@ -5,7 +5,7 @@ import { motion, useAnimationControls, useReducedMotion, AnimatePresence } from 
 import { CalendarView } from '@/components/calendar/calendar-view';
 import { RemindersManager } from '@/components/calendar/reminders-manager';
 import { DayDetails } from '@/components/calendar/day-details';
-import { SettingsPanel } from '@/components/calendar/settings-panel';
+import { SettingsPanel, type SettingsSubPage } from '@/components/calendar/settings-panel';
 import { NotesPanel } from '@/components/calendar/notes-panel';
 import { NextReminderHero } from '@/components/calendar/next-reminder-hero';
 import { useReminders } from '@/hooks/use-reminders';
@@ -138,7 +138,7 @@ export default function Home() {
   const reduceMotion = useReducedMotion() ?? false;
 
   // Settings sub-page (the settings tab is a hub; each entry opens its own page)
-  const [settingsPage, setSettingsPage] = useState<'root' | 'events' | 'converter' | 'age' | 'about'>('root');
+  const [settingsPage, setSettingsPage] = useState<SettingsSubPage>('root');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -403,7 +403,7 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => openDayDialog(selectedDate)}
-                      className="w-full min-h-12 rounded-2xl border-0 bg-white hover:bg-slate-50 active:scale-[0.99] transition-all flex items-center justify-between px-4 text-right text-sm font-semibold text-foreground shadow-sm"
+                      className="w-full min-h-12 rounded-2xl border-0 bg-card hover:bg-muted/50 active:scale-[0.99] transition-all flex items-center justify-between px-4 text-right text-sm font-semibold text-foreground shadow-sm"
                     >
                       <span>یادآور برای {toPersianDigits(selectedDate.jd)}{' '}{JALALI_MONTHS[selectedDate.jm - 1]} اضافه کن</span>
                       <span className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0"><Plus className="h-4 w-4" /></span>

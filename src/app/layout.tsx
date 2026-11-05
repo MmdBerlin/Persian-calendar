@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { CapacitorInit } from "@/components/capacitor-init";
+import { ThemeApplier } from "@/components/theme-applier";
+import { THEME_BOOT_SCRIPT } from "@/lib/themes";
 
 // IRANYekanX variable font (one file covers weights 100–1000), bundled locally.
 const iranYekanX = localFont({
@@ -48,7 +50,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2B62EF",
+  themeColor: "#056AFA",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -64,6 +66,8 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <head>
+        {/* Applies the saved theme before the first paint (no flash of the default theme) */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
@@ -71,6 +75,7 @@ export default function RootLayout({
         className={`${iranYekanX.variable} font-sans antialiased bg-background text-foreground`}
       >
         <CapacitorInit />
+        <ThemeApplier />
         {children}
         <Toaster />
       </body>

@@ -81,8 +81,8 @@ export function DateConverter() {
 
       <Tabs defaultValue="j2g" dir="rtl">
         <TabsList className="grid w-full grid-cols-2 mb-4 rounded-2xl">
-          <TabsTrigger value="j2g" className="rounded-2xl"><span dir="ltr">شمسی → میلادی</span></TabsTrigger>
-          <TabsTrigger value="g2j" className="rounded-2xl"><span dir="ltr">میلادی → شمسی</span></TabsTrigger>
+          <TabsTrigger value="j2g" className="rounded-2xl">شمسی ← میلادی</TabsTrigger>
+          <TabsTrigger value="g2j" className="rounded-2xl">میلادی ← شمسی</TabsTrigger>
         </TabsList>
 
         <TabsContent value="j2g" className="space-y-4">

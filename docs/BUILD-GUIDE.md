@@ -150,7 +150,7 @@ cd android && chmod +x gradlew && ./gradlew assembleDebug
 | **حداقل اندروید** | ۸.۰ (API 26) |
 | **اندروید هدف** | ۱۴ (API 34) |
 | **جهت** | عمودی (portrait) |
-| **تم رنگ** | `#2B62EF` |
+| **تم رنگ** | `#056AFA` |
 | **زبان** | فارسی (RTL) |
 | **حالت** | آفلاین / محلی |
 | **نوتیف** | بومی (Capacitor LocalNotifications) |

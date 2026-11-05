@@ -9,8 +9,8 @@
 
 export const SPLASH_ID = 'app-splash';
 
-/** App blue = the light theme's primary (oklch(0.55 0.22 264) ≈ #2B62EF). */
-const BLUE = '#2B62EF';
+/** App blue = the main theme's primary (#056AFA). */
+const BLUE = '#056AFA';
 const BLUE_DEEP = '#1B4DD1';
 /** The app's own light page background — same as the previous version's body
  *  colour (#F7F8FA ≈ --background oklch(0.985 0.002 240)), so the app keeps

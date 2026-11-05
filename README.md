@@ -81,7 +81,7 @@ npx cap open android
 | Package ID | `com.persiancalendar.app` |
 | حداقل اندروید | ۸.۰ (API 26) |
 | زبان | فارسی (RTL) |
-| تم رنگ | `#2B62EF` |
+| تم رنگ | `#056AFA` |
 | حالت | آفلاین / محلی |
 | اندازه APK | ۳-۵ مگابایت |
 

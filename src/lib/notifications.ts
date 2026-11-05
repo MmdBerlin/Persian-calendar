@@ -106,7 +106,7 @@ function ensureAndroidChannel(): Promise<void> {
           visibility: 1,
           vibration: true,
           lights: true,
-          lightColor: '#2B62EF',
+          lightColor: '#056AFA',
         });
         // Separate channel so official occasions can be muted from Android settings on their own
         await LocalNotifications.createChannel({

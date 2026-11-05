@@ -40,7 +40,7 @@ export function NextReminderHero({
       <button
         type="button"
         onClick={onAdd}
-        className="w-full rounded-3xl bg-gradient-to-l from-primary to-primary/80 text-primary-foreground p-4 flex items-center gap-3 shadow-lg shadow-primary/25 active:scale-[0.99] transition-transform"
+        className="w-full rounded-3xl hero-gradient text-primary-foreground p-4 flex items-center gap-3 shadow-lg shadow-primary/25 active:scale-[0.99] transition-transform"
       >
         <div className="h-11 w-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
           <Plus className="h-5 w-5" />
@@ -65,7 +65,7 @@ export function NextReminderHero({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-3xl bg-gradient-to-l from-primary to-primary/85 text-primary-foreground p-3.5 shadow-lg shadow-primary/25"
+      className="rounded-3xl hero-gradient text-primary-foreground p-3.5 shadow-lg shadow-primary/25"
     >
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
@@ -90,12 +90,13 @@ export function NextReminderHero({
           className={`shrink-0 rounded-2xl px-3 py-2 text-center font-bold ${
             isToday ? 'bg-rose-500' : 'bg-white/20'
           }`}
+          style={isToday ? undefined : { color: 'var(--hero-end-fg)' }}
         >
           <div className="text-sm leading-tight">
             {isToday ? 'امروز!' : isTomorrow ? 'فردا' : `${toPersianDigits(days)} روز`}
           </div>
           {!isToday && !isTomorrow && (
-            <div className="text-[9px] font-normal text-primary-foreground/80 leading-tight">دیگه</div>
+            <div className="text-[9px] font-normal opacity-80 leading-tight">دیگه</div>
           )}
         </div>
       </div>
